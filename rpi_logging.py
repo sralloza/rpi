@@ -45,10 +45,7 @@ class Logger:
             formato = '[%(asctime)s].[{id:3d}] %(levelname)s - %(name)s:%(lineno)s: %(message)s'
             formato2 = '%H:%M:%S'
 
-            if platform.system() == 'Linux':
-                basepath = RpiDns.get('folder.logs')
-            else:
-                basepath = 'D:/PYTHON/RASPBERRY PI/logs'
+            basepath = RpiDns.get('folder.logs')
 
             if os.path.isdir(basepath) is False:
                 os.mkdir(basepath)
