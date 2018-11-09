@@ -15,7 +15,7 @@ class RpiDns(object):
     if platform.system() == 'Linux':
         RUTA = '/home/pi/.database/rpi_dns.sqlite'
     else:
-        RUTA = 'D:/PYTHON/RASPBERRY PI/database/rpi_dns.sqlite'
+        RUTA = 'D:/.database/rpi_dns.sqlite'
 
     def __init__(self):
         self.con = sqlite3.connect(self.RUTA)
