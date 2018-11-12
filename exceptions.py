@@ -79,6 +79,14 @@ class DownloaderError(BaseError):
     """Error al descargar."""
 
 
+class JobNotFoundError(BaseError):
+    """No se encuentra el job."""
+
+
+class ExistingJobError(BaseError):
+    """Existe el job."""
+
+
 # WARNINGS
 
 class BaseWarning(Warning):

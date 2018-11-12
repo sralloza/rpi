@@ -5,6 +5,7 @@ import os
 from enum import Enum
 from json import JSONDecodeError
 
+from rpi.gestor_crontab import rpi_gct
 from .dns import RpiDns
 from .exceptions import UnrecognisedUsernameError, UnrecognisedServiceError, InvalidLauncherError, AuxiliarFileError
 from .launcher import IftttLauncher, NotifyRunLauncher
@@ -55,6 +56,7 @@ class Usuario:
         self.launcher = launcher
         self.signed_up = signed_up
         self.password = password
+        self.cronitems = None
 
         if isinstance(servicios, str):
             self.servicios = (servicios,)
@@ -65,6 +67,18 @@ class Usuario:
                     self.servicios = (servicios,)
                 else:
                     self.servicios = servicios
+
+        self.actualizar_cronitems()
+
+    def actualizar_cronitems(self):
+        self.cronitems = rpi_gct.listar_por_usuario(self)
+
+    def nuevo_proceso(self, servicio, hora, minutos, *extra):
+        rpi_gct.nuevo(servicio, self, hora, minutos, *extra)
+        self.actualizar_cronitems()
+
+    def cambiar_proceso(self, servicio, hora_antigua, hora_nueva, minutos_antiguos, minutos_nuevos, *extra):
+        rpi_gct.cambiar(servicio, self, hora_antigua, hora_nueva, minutos_antiguos, minutos_nuevos, *extra)
 
     def __repr__(self):
         return f"Usuario({self.username!r}, {self.launcher!r}, {self.servicios!r}, {self.signed_up!r})"
@@ -177,13 +191,14 @@ class GestorUsuarios(list):
         :rtype: Usuario
         :raises UnrecognisedUsernameError: si el usuario no se encuentra.
         """
+
         for usuario in self:
             if usuario.username == username:
                 return usuario
         raise UnrecognisedUsernameError('Usuario no reconocido: ' + str(username))
 
 
-PRIMARY_GU = GestorUsuarios.load()
+rpi_gu = GestorUsuarios.load()
 
 if __name__ == '__main__':
     raise AuxiliarFileError('Es un archivo auxiliar')

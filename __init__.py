@@ -2,7 +2,8 @@
 
 import platform
 
-__VERSION__ = '2018.11.9.2'
+__VERSION__ = '2018.11.12.3'
+
 
 def plataforma():
     """Devuelve L si se ejecuta en Linux y W si se ejecuta en Windows."""
