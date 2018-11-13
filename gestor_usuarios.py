@@ -2,12 +2,15 @@
 
 import json
 import os
+import sqlite3
+from collections import namedtuple
 from enum import Enum
 from json import JSONDecodeError
 
 from rpi.gestor_crontab import rpi_gct
 from .dns import RpiDns
-from .exceptions import UnrecognisedUsernameError, UnrecognisedServiceError, InvalidLauncherError, AuxiliarFileError
+from .exceptions import UnrecognisedUsernameError, UnrecognisedServiceError, InvalidLauncherError, AuxiliarFileError, \
+    UnableToSave
 from .launcher import IftttLauncher, NotifyRunLauncher
 from .rpi_logging import Logger
 
@@ -46,17 +49,18 @@ class Servicios(Enum):
     @staticmethod
     def evaluar(algo):
         """Hace la conversión str -> Servicios."""
-        return eval(algo, globals(), Servicios.__dict__)
+        try:
+            return eval(algo, globals(), Servicios.__dict__)
+        except SyntaxError:
+            return []
 
 
 class Usuario:
     """Representa un usuario afiliado a un servicio."""
 
-    def __init__(self, username, launcher, *servicios, signed_up=None, password=None):
+    def __init__(self, username, launcher, *servicios):
         self.username = username
         self.launcher = launcher
-        self.signed_up = signed_up
-        self.password = password
         self.cronitems = None
 
         if isinstance(servicios, str):
@@ -82,7 +86,7 @@ class Usuario:
         rpi_gct.cambiar(servicio, self, hora_antigua, hora_nueva, minutos_antiguos, minutos_nuevos, *extra)
 
     def __repr__(self):
-        return f"Usuario({self.username!r}, {self.launcher!r}, {self.servicios!r}, {self.signed_up!r})"
+        return f"Usuario({self.username!r}, {self.launcher!r}, {self.servicios!r})"
 
     def __str__(self):
         return self.username
@@ -107,41 +111,32 @@ class GestorUsuarios(list):
 
     @classmethod
     def load(cls):
-        return cls.from_json()
-
-    @classmethod
-    def from_json(cls):
         """Carga todos los usuarios."""
         self = cls.__new__(cls)
         self.__init__()
+        TempUser = namedtuple('TempUser', ['username', 'launcher', 'servicios'])
 
-        self.path = RpiDns.get('json.usuarios')
-        self.path2 = self.path.replace('usuarios', 'usuarios_web')
+        self.path = RpiDns.get('sqlite.django')
 
         if os.path.isfile(self.path) is False:
             logger = Logger.get(__file__, __name__)
             logger.critical('Archivo de usuarios no encontrado')
             raise FileNotFoundError('Archivo de usuarios no encontrado')
 
-        with open(self.path) as f:
-            contenido = json.load(f)
-
-        try:
-            with open(self.path2) as f:
-                contenido += json.load(f)
-        except (FileNotFoundError, JSONDecodeError):
-            pass
+        self.con = sqlite3.connect(self.path)
+        self.cur = self.con.cursor()
+        self.cur.execute("select username, launcher, servicios from 'usuarios_usuario'")
+        contenido = self.cur.fetchall()
+        contenido = [TempUser(*x) for x in contenido]
 
         for user in contenido:
-            username = user['username']
+            username = user.username
 
-            if username in self.usernames:
+            servicios = Servicios.evaluar(user.servicios)
+            try:
+                launcher = json.loads(user.launcher)
+            except JSONDecodeError:
                 continue
-
-            servicios = Servicios.evaluar(user['servicios'])
-            launcher = user['launcher']
-            signed_up = user.get('signed-up')
-            password = user.get('password')
 
             if launcher["tipo"] == 'IFTTT':
                 launcher = IftttLauncher(launcher["url"])
@@ -150,9 +145,7 @@ class GestorUsuarios(list):
             else:
                 raise InvalidLauncherError()
 
-            self.append(Usuario(username, launcher, servicios, signed_up=signed_up, password=password))
-
-        self.save()
+            self.append(Usuario(username, launcher, servicios))
 
         return self
 
@@ -177,13 +170,7 @@ class GestorUsuarios(list):
             self.remove(self.get_by_username(username))
 
     def save(self):
-        try:
-            with open(self.path2, 'wt') as f:
-                f.write('')
-        except FileNotFoundError:
-            pass
-        with open(self.path, 'w') as f:
-            json.dump(self.to_json, f, indent=4, sort_keys=True)
+        raise UnableToSave('Usa la página web')
 
     def get_by_username(self, username):
         """A partir de un nombre de usuario devuelve el usuario entero

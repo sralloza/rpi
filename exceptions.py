@@ -87,6 +87,10 @@ class ExistingJobError(BaseError):
     """Existe el job."""
 
 
+class UnableToSave(BaseError):
+    """No se puede guardar"""
+
+
 # WARNINGS
 
 class BaseWarning(Warning):

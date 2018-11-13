@@ -54,7 +54,7 @@ class GestorCrontab(object):
         if plataforma() == 'W':
             self.cron = CronTab(tabfile='D:/PYTHON/raspberry_pi/rpi/crontab.txt')
         else:
-            self.cron = CronTab(user='pi')
+            self.cron = CronTab(user=True)
 
     def nuevo(self, servicio, usuario, hora, minutos, *extra):
         servicio = CrontableServices.get_by_name(servicio).value
