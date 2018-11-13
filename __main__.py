@@ -5,7 +5,7 @@ import sys
 
 from .conexiones import Conexiones
 from .exceptions import UnrecognisedUsernameError
-from .gestor_usuarios import PRIMARY_GU
+from .gestor_usuarios import rpi_gu
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     notificar = subparser.add_parser('notificar')
     notificar.add_argument('titulo')
     notificar.add_argument('mensaje')
-    notificar.add_argument('destinos', nargs='+', choices=PRIMARY_GU.usernames)
+    notificar.add_argument('destinos', nargs='+', choices=rpi_gu.usernames)
 
     email = subparser.add_parser('email')
     email.add_argument('destino')
@@ -35,19 +35,19 @@ def main():
 
     try:
         if opt['ver'] is False and opt['eliminar'] is None:
-            print(PRIMARY_GU.usernames)
+            print(rpi_gu.usernames)
             return
     except KeyError:
         pass
 
     if 'ver' in opt:
         if opt['ver'] is True:
-            print(PRIMARY_GU)
+            print(rpi_gu)
             return
     if 'eliminar' in opt:
         try:
-            PRIMARY_GU.delete(opt['eliminar'])
-            PRIMARY_GU.save()
+            rpi_gu.delete(opt['eliminar'])
+            rpi_gu.save()
         except UnrecognisedUsernameError as err:
             print(err)
         else:

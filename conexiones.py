@@ -24,7 +24,7 @@ from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError, \
     AuxiliarFileError
 from .gestor_claves import GestorClaves
-from .gestor_usuarios import Servicios, PRIMARY_GU
+from .gestor_usuarios import Servicios, rpi_gu
 from .rpi_logging import Logger
 
 debug_lock = Lock()
@@ -33,7 +33,7 @@ logger = Logger.get(__file__, __name__)
 
 class Conexiones:
     """Clase para gestionar todas las conexiones salientes."""
-    gu = PRIMARY_GU
+    gu = rpi_gu
     DISABLE = platform.system() == 'Windows'
 
     def __init__(self):
