@@ -18,6 +18,7 @@ class Servicios(Enum):
     VCS = 'vcs.py'
     ENVIAR = 'enviar.py'
     AEMET = 'aemet.py'
+    UNKOWN = '?'
     LOG = 0
 
     def __repr__(self):
