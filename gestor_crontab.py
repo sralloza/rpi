@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import os
 from difflib import SequenceMatcher
 from enum import Enum
@@ -16,16 +17,6 @@ class CrontableService(object):
 
     def __repr__(self):
         return f"{type(self).__name__}(nombre={self.nombre!r}, ruta={self.ruta!r})"
-
-
-# class MenusService(AbstractCrontableService):
-#     nombre = 'Menús Resi'
-#     ruta = '/home/pi/scripts/menus_resi.py'
-
-
-# class AemetService(AbstractCrontableService):
-#     nombre = 'Aemet'
-#     ruta = '/home/pi/scripts/aemet.py'
 
 
 class CrontableServices(Enum):

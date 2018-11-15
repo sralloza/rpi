@@ -2,7 +2,7 @@
 
 import platform
 
-__VERSION__ = '2018.11.13.3'
+__VERSION__ = '2018.11.15'
 
 
 def plataforma():
