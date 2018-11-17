@@ -45,7 +45,7 @@ class GestorServicios(Enum):
     AEMET = ServicioRaspberry('AEMET', 'aemet.py', ['hoy', 'manana', 'pasado', 'todos'], ispublic=True)
     MENUS = ServicioRaspberry('MENUS', 'menus_resi.py', ['comida', 'cena', 'default'], ispublic=True)
 
-    VCS = ServicioRaspberry('VCS', 'vcs.py', ['campus_username', 'campus_password'], ispublic=True)
+    VCS = ServicioRaspberry('VCS', 'vcs.py', [], configuracion=['campus_username', 'campus_password'], ispublic=True)
     ENVIAR = ServicioRaspberry('ENVIAR', 'enviar.py', [])
 
     LOG = ServicioRaspberry('LOG', '', [])
