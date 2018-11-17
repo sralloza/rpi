@@ -107,3 +107,11 @@ class ExistingMenuWarning(BaseWarning):
 
 class NotEnoughSubjectsWarning(BaseWarning):
     """No se han encontrado suficientes asignaturas."""
+
+
+class UnrecognisedServiceWarning(BaseWarning):
+    """No se ha reconocido un servicio."""
+
+
+class UnexpectedBehaviourWarning(BaseWarning):
+    """No debería haberse dado esta situación, pero no se sabe si es crítica."""

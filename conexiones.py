@@ -24,7 +24,7 @@ from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError, \
     AuxiliarFileError
 from .gestor_claves import GestorClaves
-from .gestor_usuarios import Servicios, rpi_gu
+from .gestor_usuarios import GestorServicios, rpi_gu
 from .rpi_logging import Logger
 
 debug_lock = Lock()
@@ -78,7 +78,7 @@ class Conexiones:
             raise NeccessaryArgumentError(f"Debe especificar el parámetro 'file' para comprobar los permisos.")
 
         # Servicio
-        servicio = Servicios.get(file) if file is not None else Servicios.LOG
+        servicio = GestorServicios.get(file) if file is not None else GestorServicios.LOG
 
         # Preparación del mapa de destinos
         destinos = {x: False for x in Conexiones.gu}

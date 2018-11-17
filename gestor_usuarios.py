@@ -7,6 +7,7 @@ from collections import namedtuple
 from json import JSONDecodeError
 
 from rpi.gestor_crontab import rpi_gct
+from rpi.gestor_servicios import GestorServicios, ServicioRaspberry
 from .dns import RpiDns
 from .exceptions import UnrecognisedUsernameError, InvalidLauncherError, AuxiliarFileError, \
     UnableToSave
@@ -27,7 +28,7 @@ class Usuario:
         else:
             if isinstance(servicios, tuple) and len(servicios) == 1:
                 servicios = servicios[0]
-                if isinstance(servicios, Servicios):
+                if isinstance(servicios, ServicioRaspberry):
                     self.servicios = (servicios,)
                 else:
                     self.servicios = servicios
@@ -91,7 +92,7 @@ class GestorUsuarios(list):
         for user in contenido:
             username = user.username
 
-            servicios = Servicios.evaluar(user.servicios)
+            servicios = GestorServicios.evaluar(user.servicios)
             try:
                 launcher = json.loads(user.launcher)
             except JSONDecodeError:

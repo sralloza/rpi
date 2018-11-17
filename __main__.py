@@ -3,10 +3,11 @@
 import argparse
 import sys
 
+from . import __VERSION__ as VERSION
 from .conexiones import Conexiones
 from .exceptions import UnrecognisedUsernameError
 from .gestor_usuarios import rpi_gu
-from . import __VERSION__ as version
+
 
 def main():
     if len(sys.argv) <= 1:
@@ -39,7 +40,7 @@ def main():
 
     if 'version' in opt:
         if opt['version'] is True:
-            print(f'rpi {version}')
+            print(f'rpi {VERSION}')
             return
 
     try:
