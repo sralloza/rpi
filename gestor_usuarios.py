@@ -120,8 +120,8 @@ class GestorUsuarios(list):
 
         if os.path.isfile(self.path) is False:
             logger = Logger.get(__file__, __name__)
-            logger.critical('Archivo de usuarios no encontrado')
-            raise FileNotFoundError('Archivo de usuarios no encontrado')
+            logger.critical(f'Archivo de usuarios no encontrado ({self.path})')
+            raise FileNotFoundError(f'Archivo de usuarios no encontrado ({self.path})')
 
         self.con = sqlite3.connect(self.path)
         self.cur = self.con.cursor()
