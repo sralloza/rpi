@@ -4,55 +4,14 @@ import json
 import os
 import sqlite3
 from collections import namedtuple
-from enum import Enum
 from json import JSONDecodeError
 
 from rpi.gestor_crontab import rpi_gct
 from .dns import RpiDns
-from .exceptions import UnrecognisedUsernameError, UnrecognisedServiceError, InvalidLauncherError, AuxiliarFileError, \
+from .exceptions import UnrecognisedUsernameError, InvalidLauncherError, AuxiliarFileError, \
     UnableToSave
 from .launcher import IftttLauncher, NotifyRunLauncher
 from .rpi_logging import Logger
-
-
-class Servicios(Enum):
-    """Clase que representa los servicios que se ejecutan en la rpi."""
-    MENUS = 'menus_resi.py'
-    VCS = 'vcs.py'
-    ENVIAR = 'enviar.py'
-    AEMET = 'aemet.py'
-    UNKOWN = '?'
-    LOG = 0
-
-    def __repr__(self):
-        return self.__class__.__name__ + '.' + self.name
-
-    def __str__(self):
-        return self.name
-
-    @staticmethod
-    def get(path):
-        """A partir de la ruta de un archivo, esta función determina su servicio y lo devuelve. Si no lo encuentra,
-        lanza ValueError."""
-
-        path = os.path.basename(path)
-        for servicio in Servicios:
-            if servicio.value == path:
-                return servicio
-        else:
-            if path in (
-                    'backup.py', 'ngrok.py', 'ngrok2.py', 'reboot.py',
-                    'serveo.py', 'gestor_mail.py', 'controller.py', 'pull.sh'):
-                return Servicios.LOG
-            raise UnrecognisedServiceError(f"Servicio no reconocido: {path}")
-
-    @staticmethod
-    def evaluar(algo):
-        """Hace la conversión str -> Servicios."""
-        try:
-            return eval(algo, globals(), Servicios.__dict__)
-        except SyntaxError:
-            return []
 
 
 class Usuario:
