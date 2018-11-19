@@ -1,54 +1,83 @@
 import os
+from collections import namedtuple
 from enum import Enum
 from warnings import warn
 
 from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, InvalidArgumentError
 
+ArgumentoServicioRaspberry = namedtuple('ArgumentoServicioRaspberry', ['nombre', 'tipo'])
+
 
 class ServicioRaspberry(object):
-    def __init__(self, name, basename, argumentos, configuracion=None, ispublic=False):
-        if configuracion is None:
-            configuracion = ()
+    def __init__(self, name, paths, argumentos, datos=None, ispublic=False):
+        if datos is None:
+            datos = ()
 
         self.name = name
 
-        if isinstance(basename, str):
-            basename = (basename,)
+        if isinstance(paths, str):
+            paths = (paths,)
         try:
-            self.basename = tuple(basename)
+            self.paths = tuple(paths)
         except TypeError:
-            raise InvalidArgumentError(f'Invalid type ({type(basename).__name__})')
+            raise InvalidArgumentError(f'Invalid type ({type(paths).__name__})')
 
-        if isinstance(configuracion, str):
-            configuracion = (configuracion,)
+        self.basenames = tuple([os.path.basename(x).lower() for x in self.paths])
+
+        if isinstance(datos, str):
+            datos = (datos,)
         try:
-            self.configuracion = tuple(configuracion)
+            self.datos = tuple(datos)
         except TypeError:
-            raise InvalidArgumentError(f'Invalid type ({type(configuracion).__name__})')
+            raise InvalidArgumentError(f'Invalid type ({type(datos).__name__})')
 
-        self.configuracion = configuracion
+        self.datos = datos
         self.argumentos = argumentos
         self.ispublic = ispublic
+        self.names = [os.path.splitext(x)[0].lower() for x in self.basenames]
+
+    def __repr__(self):
+        return f"ServicioRaspberry({self.name})"
+
+    @property
+    def ruta(self):
+        return self.paths[0]
 
     def isfile(self, other):
         return self.ispath(other)
 
     def ispath(self, other):
-        return other in self.basename
+        other = os.path.basename(other).lower()
+        condition = other in self.basenames
 
-    def __repr__(self):
-        return f"ServicioRaspberry({self.name})"
+        if condition is False:
+            return other in self.names
+        return condition
 
 
 class GestorServicios(Enum):
     """Clase que representa los servicios que se ejecutan en la rpi."""
-    AEMET = ServicioRaspberry('AEMET', 'aemet.py', ['hoy', 'manana', 'pasado', 'todos'], ispublic=True)
-    MENUS = ServicioRaspberry('MENUS', 'menus_resi.py', ['comida', 'cena', 'default'], ispublic=True)
+    AEMET = ServicioRaspberry('AEMET', '/home/pi/scripts/aemet.py', [
+        ArgumentoServicioRaspberry('fecha', 'time'),
+        ArgumentoServicioRaspberry('hoy', 'radio'),
+        ArgumentoServicioRaspberry('manana', 'radio'),
+        ArgumentoServicioRaspberry('pasado', 'radio'),
+        ArgumentoServicioRaspberry('todos', 'radio')
+    ], ispublic=True)
+    MENUS = ServicioRaspberry('MENUS', '/home/pi/scripts/menus_resi.py', [
+        ArgumentoServicioRaspberry('comida', 'radio'),
+        ArgumentoServicioRaspberry('cena', 'radio'),
+        ArgumentoServicioRaspberry('default', 'radio')
+    ], ispublic=True)
 
-    VCS = ServicioRaspberry('VCS', 'vcs.py', [], configuracion=['campus_username', 'campus_password'], ispublic=True)
-    ENVIAR = ServicioRaspberry('ENVIAR', 'enviar.py', [])
+    VCS = ServicioRaspberry('VCS', '/home/pi/scripts/vcs.py', [], datos=['campus_username', 'campus_password'])
+    ENVIAR = ServicioRaspberry('ENVIAR', '/home/pi/scripts/enviar.py', [])
 
-    LOG = ServicioRaspberry('LOG', '', [])
+    LOG = ServicioRaspberry('LOG', [
+        '/home/pi/scripts/backup.py', '/home/pi/scripts/ngrok.py', '/home/pi/scripts/ngrok2.py',
+        '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py', '/home/pi/scripts/gestor_mail.py',
+        '/home/pi/scripts/controller.py', '/home/pi/pull.sh'
+    ], [])
 
     UNKOWN = ServicioRaspberry('UNKOWN', '?', [])
 
@@ -59,21 +88,20 @@ class GestorServicios(Enum):
         return self.name
 
     @staticmethod
-    def get(path):
-        """A partir de la ruta de un archivo, esta función determina su servicio y lo devuelve. Si no lo encuentra,
-        lanza ValueError."""
+    def get(basepath):
 
-        path = os.path.basename(path)
+        if isinstance(basepath, ServicioRaspberry):
+            return basepath
+        if isinstance(basepath, GestorServicios):
+            return basepath.value
+
+        basepath = os.path.basename(basepath)
         for servicio in GestorServicios:
-            if servicio.value.isfile(path):
+            if servicio.value.isfile(basepath):
                 return servicio.value
-        else:
-            if path in (
-                    'backup.py', 'ngrok.py', 'ngrok2.py', 'reboot.py',
-                    'serveo.py', 'gestor_mail.py', 'controller.py', 'pull.sh'):
-                return GestorServicios.LOG.value
-            warn(f"Servicio no reconocido: {path}", UnrecognisedServiceWarning)
-            return GestorServicios.UNKOWN.value
+
+        warn(f"Servicio no reconocido: {basepath}", UnrecognisedServiceWarning)
+        return GestorServicios.UNKOWN.value
 
     @staticmethod
     def evaluar(algo):
