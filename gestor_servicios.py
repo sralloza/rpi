@@ -98,8 +98,10 @@ class GestorServicios(Enum):
         if isinstance(basepath, GestorServicios):
             return basepath.value
 
-        basepath = os.path.basename(basepath)
+        basepath = os.path.basename(basepath).lower()
         for servicio in GestorServicios:
+            if servicio.name.lower() == basepath:
+                return servicio.value
             if servicio.value.isfile(basepath):
                 return servicio.value
 
