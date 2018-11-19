@@ -65,12 +65,15 @@ class GestorServicios(Enum):
         ArgumentoServicioRaspberry('todos', 'radio')
     ], ispublic=True)
     MENUS = ServicioRaspberry('MENUS', '/home/pi/scripts/menus_resi.py', [
+        ArgumentoServicioRaspberry('fecha', 'time'),
         ArgumentoServicioRaspberry('comida', 'radio'),
         ArgumentoServicioRaspberry('cena', 'radio'),
         ArgumentoServicioRaspberry('default', 'radio')
     ], ispublic=True)
 
-    VCS = ServicioRaspberry('VCS', '/home/pi/scripts/vcs.py', [], datos=['campus_username', 'campus_password'])
+    VCS = ServicioRaspberry('VCS', '/home/pi/scripts/vcs.py', [
+        ArgumentoServicioRaspberry('fecha', 'time'),
+    ], datos=['campus_username', 'campus_password'])
     ENVIAR = ServicioRaspberry('ENVIAR', '/home/pi/scripts/enviar.py', [])
 
     LOG = ServicioRaspberry('LOG', [
