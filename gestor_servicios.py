@@ -58,14 +58,14 @@ class ServicioRaspberry(object):
 class GestorServicios(Enum):
     """Clase que representa los servicios que se ejecutan en la rpi."""
     AEMET = ServicioRaspberry('AEMET', '/home/pi/scripts/aemet.py', [
-        ArgumentoServicioRaspberry('fecha', 'time'),
+        ArgumentoServicioRaspberry('hora', 'time'),
         ArgumentoServicioRaspberry('hoy', 'radio'),
         ArgumentoServicioRaspberry('manana', 'radio'),
         ArgumentoServicioRaspberry('pasado', 'radio'),
         ArgumentoServicioRaspberry('todos', 'radio')
     ], ispublic=True)
     MENUS = ServicioRaspberry('MENUS', '/home/pi/scripts/menus_resi.py', [
-        ArgumentoServicioRaspberry('fecha', 'time'),
+        ArgumentoServicioRaspberry('hora', 'time'),
         ArgumentoServicioRaspberry('comida', 'radio'),
         ArgumentoServicioRaspberry('cena', 'radio'),
         ArgumentoServicioRaspberry('default', 'radio')
