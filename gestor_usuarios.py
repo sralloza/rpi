@@ -18,10 +18,11 @@ from .rpi_logging import Logger
 class Usuario:
     """Representa un usuario afiliado a un servicio."""
 
-    def __init__(self, username, launcher, *servicios):
+    def __init__(self, username, launcher, esta_activo, *servicios):
         self.username = username
         self.launcher = launcher
         self.cronitems = None
+        self.esta_activo = bool(esta_activo)
 
         if isinstance(servicios, str):
             self.servicios = (servicios,)
@@ -74,7 +75,7 @@ class GestorUsuarios(list):
         """Carga todos los usuarios."""
         self = cls.__new__(cls)
         self.__init__()
-        TempUser = namedtuple('TempUser', ['username', 'launcher', 'servicios'])
+        TempUser = namedtuple('TempUser', ['username', 'launcher', 'esta_activo', 'servicios'])
 
         self.path = RpiDns.get('sqlite.django')
 
@@ -85,12 +86,13 @@ class GestorUsuarios(list):
 
         self.con = sqlite3.connect(self.path)
         self.cur = self.con.cursor()
-        self.cur.execute("select username, launcher, servicios from 'usuarios_usuario'")
+        self.cur.execute("select username, launcher, is_active, servicios from 'usuarios_usuario'")
         contenido = self.cur.fetchall()
         contenido = [TempUser(*x) for x in contenido]
 
         for user in contenido:
             username = user.username
+            esta_activo = user.esta_activo
 
             servicios = GestorServicios.evaluar(user.servicios)
             try:
@@ -105,7 +107,7 @@ class GestorUsuarios(list):
             else:
                 raise InvalidLauncherError()
 
-            self.append(Usuario(username, launcher, servicios))
+            self.append(Usuario(username, launcher, esta_activo, servicios))
 
         return self
 

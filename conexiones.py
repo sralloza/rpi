@@ -77,6 +77,9 @@ class Conexiones:
         if file is None and _forzar_notificacion is False:
             raise NeccessaryArgumentError(f"Debe especificar el parámetro 'file' para comprobar los permisos.")
 
+        if destino == 'broadcast' and file is None:
+            raise NeccessaryArgumentError("No se puede usar broadcast si no se especifica el parámetro 'file'.")
+
         # Servicio
         servicio = GestorServicios.get(file) if file is not None else GestorServicios.LOG
 
@@ -91,7 +94,13 @@ class Conexiones:
                 for usuario in Conexiones.gu:
                     destinos[usuario] = True
 
-            # Si el usuario destino no está registrado, lanza excepción
+            # Si el usuario destino es 'broadcast', se manda a todos los usuarios afiliados al servicio.
+            elif destino == 'broadcast':
+                for usuario in Conexiones.gu:
+                    if servicio in usuario.servicios:
+                        destinos[usuario] = True
+
+                # Si el usuario destino no está registrado, lanza excepción
             elif destino not in Conexiones.gu.usernames:
                 raise UnrecognisedUsernameError('Usuario no afiliado: ' + destino)
             else:
@@ -149,11 +158,17 @@ class Conexiones:
         """
 
         try:
+            if usuario.esta_activo is False:
+                logger.warning('[Usuario desactivado] ' + usuario.username)
+                return False
+
             if Conexiones.DISABLE is True:
                 logger.warning('[Notificaciones deshabilitadas] ' + usuario.username)
+                return False
             else:
                 usuario.launcher.fire(title, message)
                 logger.debug('Enviada notificación a ' + usuario.username)
+                return True
         except DownloaderError:
             self.append_error(usuario)
 
