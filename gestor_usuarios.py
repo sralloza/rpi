@@ -18,11 +18,12 @@ from .rpi_logging import Logger
 class Usuario:
     """Representa un usuario afiliado a un servicio."""
 
-    def __init__(self, username, launcher, esta_activo, *servicios):
+    def __init__(self, username, launcher, esta_activo, email, *servicios):
         self.username = username
         self.launcher = launcher
         self.cronitems = None
         self.esta_activo = bool(esta_activo)
+        self.email = email
 
         if isinstance(servicios, str):
             self.servicios = (servicios,)
@@ -70,12 +71,16 @@ class GestorUsuarios(list):
         """Devuelve una tupla de los nombres de usuario."""
         return tuple([x.username for x in self])
 
+    @property
+    def emails(self):
+        return tuple([x.email for x in self])
+
     @classmethod
     def load(cls):
         """Carga todos los usuarios."""
         self = cls.__new__(cls)
         self.__init__()
-        TempUser = namedtuple('TempUser', ['username', 'launcher', 'esta_activo', 'servicios'])
+        TempUser = namedtuple('TempUser', ['username', 'launcher', 'esta_activo', 'email',  'servicios'])
 
         self.path = RpiDns.get('sqlite.django')
 
@@ -86,13 +91,14 @@ class GestorUsuarios(list):
 
         self.con = sqlite3.connect(self.path)
         self.cur = self.con.cursor()
-        self.cur.execute("select username, launcher, is_active, servicios from 'usuarios_usuario'")
+        self.cur.execute("select username, launcher, is_active, email, servicios from 'usuarios_usuario'")
         contenido = self.cur.fetchall()
         contenido = [TempUser(*x) for x in contenido]
 
         for user in contenido:
             username = user.username
             esta_activo = user.esta_activo
+            email = user.email
 
             servicios = GestorServicios.evaluar(user.servicios)
             try:
@@ -107,7 +113,7 @@ class GestorUsuarios(list):
             else:
                 raise InvalidLauncherError()
 
-            self.append(Usuario(username, launcher, esta_activo, servicios))
+            self.append(Usuario(username, launcher, esta_activo, email, servicios))
 
         return self
 
