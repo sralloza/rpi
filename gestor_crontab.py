@@ -2,7 +2,7 @@
 
 import os
 
-from crontab import CronTab
+from crontab import CronTab, CronItem
 
 from rpi import plataforma
 from rpi.gestor_servicios import GestorServicios
@@ -68,16 +68,29 @@ class GestorCrontab(object):
 
         self.cron.write()
 
-    def cambiar(self, servicio, usuario, hora_antigua, minutos_antiguos, hora_nueva, minutos_nuevos, *extra):
-        servicio_original = servicio
-        # servicio = CrontableServices.get_by_name(servicio).value
-        # command = GestorCrontab.BASE + servicio.ruta + ' ' + ' '.join(extra)
-        self.eliminar(usuario, servicio, hora_antigua, minutos_antiguos, *extra)
 
-        self.nuevo(servicio_original, usuario, hora_nueva, minutos_nuevos, *extra)
+    def eliminar_por_hash(self, hashcode):
+        select = None
+        jobs = list(self.cron)
+
+        for job in jobs:
+            if self.job_to_hash(job) == hashcode:
+                select = job
+                self.cron.remove(job)
+
+        if select is None:
+            raise JobNotFoundError(
+                f'No se encuentra el trabajo (hash={hashcode!r})'
+            )
+
+        self.cron.write()
 
     def listar_por_usuario(self, usuario):
         return list(self.cron.find_comment(usuario.username))
+
+    @staticmethod
+    def job_to_hash(job: CronItem):
+        return hash(str(vars(job)))
 
 
 rpi_gct = GestorCrontab()
