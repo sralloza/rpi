@@ -2,8 +2,8 @@
 
 from crontab import CronTab, CronItem
 
-from rpi import plataforma
-from rpi.gestor_servicios import GestorServicios
+from . import plataforma
+from .gestor_servicios import GestorServicios
 from .exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
 
 
@@ -16,6 +16,9 @@ class GestorCrontab(object):
             self.cron = CronTab(tabfile='D:/PYTHON/raspberry_pi/rpi/crontab.txt')
         else:
             self.cron = CronTab(user=True)
+
+    def __iter__(self):
+        return iter(self.cron)
 
     def nuevo(self, servicio, usuario, hora, minutos, *extra):
         """Crea una nueva tarea en crontab."""
