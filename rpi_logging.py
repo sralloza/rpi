@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import platform
+import re
 
 from .dns import RpiDns
 from .exceptions import WrongLogType
@@ -44,7 +45,7 @@ class Logger:
             # Prevent logging from propagating to the root logger
             logger.propagate = 0
 
-            formato = '[%(asctime)s].[{id:04d}] %(levelname)s - %(lineno)s:%(module)s: %(message)s'
+            formato = '[%(asctime)s].[{id:04d}] %(module)s:%(lineno)s - %(levelname)s: %(message)s'
             formato2 = '%H:%M:%S'
 
             basepath = RpiDns.get('folder.logs')
@@ -72,6 +73,11 @@ class Logger:
             if os.path.isfile(filename) is False:
                 with open(filename, 'wt', encoding='utf-8') as _:
                     pass
+
+            with open(filename, encoding='utf-8') as fh:
+                logs = fh.read()
+
+            Logger.ID = max([int(x.group(1)) for x in re.finditer(r'\[\d{2}:\d{2}:\d{2}\].\[(\d+)\]', logs)]) + 1
 
             formatter = logging.Formatter(formato.format(**{'id': Logger.ID}), formato2)
 
