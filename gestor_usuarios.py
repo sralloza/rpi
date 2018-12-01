@@ -6,17 +6,16 @@ import sqlite3
 from collections import namedtuple
 from json import JSONDecodeError
 
-from rpi.gestor_crontab import rpi_gct
+from rpi.gestor_crontab import GestorCrontab
 from rpi.gestor_servicios import GestorServicios, ServicioRaspberry
 from .dns import RpiDns
-from .exceptions import UnrecognisedUsernameError, InvalidLauncherError, AuxiliarFileError, \
-    UnableToSave
+from .exceptions import UnrecognisedUsernameError, InvalidLauncherError
 from .launcher import IftttLauncher, NotifyRunLauncher
 from .rpi_logging import Logger
 
 
 class Usuario:
-    """Representa un usuario afiliado a un servicio."""
+    """Representa un usuario."""
 
     def __init__(self, username, launcher, esta_activo, email, *servicios):
         self.username = username
@@ -38,14 +37,13 @@ class Usuario:
         self.actualizar_cronitems()
 
     def actualizar_cronitems(self):
-        self.cronitems = rpi_gct.listar_por_usuario(self)
+        """Actualiza todas las tareas que ha creado el usuario."""
+        self.cronitems = GestorCrontab().listar_por_usuario(self)
 
     def nuevo_proceso(self, servicio, hora, minutos, *extra):
-        rpi_gct.nuevo(servicio, self, hora, minutos, *extra)
+        """Crea una nueva tarea."""
+        GestorCrontab().nuevo(servicio, self, hora, minutos, *extra)
         self.actualizar_cronitems()
-
-    def cambiar_proceso(self, servicio, hora_antigua, hora_nueva, minutos_antiguos, minutos_nuevos, *extra):
-        rpi_gct.cambiar(servicio, self, hora_antigua, hora_nueva, minutos_antiguos, minutos_nuevos, *extra)
 
     def __repr__(self):
         return f"Usuario({self.username!r}, {self.launcher!r}, {self.servicios!r})"
@@ -73,6 +71,7 @@ class GestorUsuarios(list):
 
     @property
     def emails(self):
+        """Devuelve una tupla con todos los emails."""
         return tuple([x.email for x in self])
 
     @classmethod
@@ -80,7 +79,7 @@ class GestorUsuarios(list):
         """Carga todos los usuarios."""
         self = cls.__new__(cls)
         self.__init__()
-        TempUser = namedtuple('TempUser', ['username', 'launcher', 'esta_activo', 'email',  'servicios'])
+        TempUser = namedtuple('TempUser', ['username', 'launcher', 'esta_activo', 'email', 'servicios'])
 
         self.path = RpiDns.get('sqlite.django')
 
@@ -117,36 +116,8 @@ class GestorUsuarios(list):
 
         return self
 
-    @property
-    def to_json(self):
-        foo = []
-        for user in self:
-            bar = dict()
-            bar["username"] = user.username
-            bar["password"] = user.password
-            bar["servicios"] = ', '.join([str(x) for x in user.servicios])
-            bar["launcher"] = user.launcher.to_json()
-            foo.append(bar)
-
-        return foo
-
-    def delete(self, username):
-
-        if isinstance(username, Usuario) is True:
-            self.remove(username)
-        else:
-            self.remove(self.get_by_username(username))
-
-    def save(self):
-        raise UnableToSave('Usa la página web')
-
     def get_by_username(self, username):
-        """A partir de un nombre de usuario devuelve el usuario entero
-
-        :param str username: nombre del usuario a buscar.
-        :rtype: Usuario
-        :raises UnrecognisedUsernameError: si el usuario no se encuentra.
-        """
+        """A partir de un nombre de usuario devuelve el usuario entero."""
 
         for usuario in self:
             if usuario.username == username:
@@ -155,6 +126,3 @@ class GestorUsuarios(list):
 
 
 rpi_gu = GestorUsuarios.load()
-
-if __name__ == '__main__':
-    raise AuxiliarFileError('Es un archivo auxiliar')

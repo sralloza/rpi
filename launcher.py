@@ -8,11 +8,7 @@ logger = Logger.get(__file__, __name__)
 
 
 class BaseLauncher(object):
-    """Clase base para lanzar notificadores.
-
-    :param Downloader downloader: (optional) descargador.
-
-    """
+    """Clase base para lanzar notificadores."""
 
     def __init__(self, downloader=None):
         if downloader is None:

@@ -11,11 +11,15 @@ logger = Logger.get(__file__, __name__)
 
 
 class Downloader(requests.Session):
+    """Descargador con control de reintentos."""
+
     def __init__(self, retries=10):
         self._retries = retries
         super().__init__()
 
     def get(self, *args, **kwargs):
+        """Método GET de HTTP."""
+
         logger.debug('GET ' + args[0])
         retries = self._retries
 
@@ -30,6 +34,8 @@ class Downloader(requests.Session):
         raise DownloaderError('max retries failed.')
 
     def post(self, *args, **kwargs):
+        """Método POST de HTTP."""
+
         logger.debug('POST ' + args[0])
         retries = self._retries
 

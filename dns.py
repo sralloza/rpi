@@ -5,7 +5,7 @@ import sqlite3
 import warnings
 from difflib import SequenceMatcher
 
-from .exceptions import TooLowAccuracy, UnknownError, AuxiliarFileError, DnsError
+from .exceptions import TooLowAccuracy, UnknownError, DnsError
 
 
 # ADVERTENCIA: ESTE ARCHIVO NO USA LOG DEBIDO A ERRORES DE IMPORTACIÓN.
@@ -27,6 +27,8 @@ class RpiDns(object):
         self._check()
 
     def _check(self):
+        """Comprueba que para cada alias exista una versión en windows y otra en linux."""
+
         self.cur.execute("SELECT alias FROM dns")
         datos = tuple((x[0] for x in self.cur.fetchall()))
         windows = tuple((x for x in datos if 'windows' in x))
@@ -47,11 +49,7 @@ class RpiDns(object):
 
     @staticmethod
     def alias():
-        """Devuelve los alias de las direcciones almacenadas.
-
-        :rtype: tuple
-
-        """
+        """Devuelve los alias de las direcciones almacenadas."""
 
         self = object.__new__(RpiDns)
         self.__init__()
@@ -63,12 +61,7 @@ class RpiDns(object):
 
     @staticmethod
     def insert(alias, address):
-        """Inserta un nuevo alias en el registro.
-
-        :param str alias: alias a registar.
-        :param str address: dirección a registrar.
-
-        """
+        """Inserta un nuevo alias en el registro."""
 
         self = object.__new__(RpiDns)
         self.__init__()
@@ -84,11 +77,7 @@ class RpiDns(object):
         return SequenceMatcher(None, a, b).ratio()
 
     def _get(self, alias):
-        """Devuelve la dirección cuyo alias más se parecza a key.
-
-        :raises: TooLowAccuracy: Hay una precisión menor que 90%.
-
-        """
+        """Devuelve la dirección cuyo alias más se parecza a key."""
 
         ratios = {x: self._similar(alias.lower(), x.lower()) for x in self.alias()}
         max_ratio = max(ratios.values())
@@ -105,13 +94,8 @@ class RpiDns(object):
 
     @staticmethod
     def get(alias):
-        """Devuelve la dirección real a partir de un alias.
+        """Devuelve la dirección real a partir de un alias."""
 
-        :param str alias: alias a buscar.
-
-        :rtype: str
-        :raises: TooLowAccuracy: Hay una precisión menor que 90%.
-        """
         self = object.__new__(RpiDns)
         self.__init__()
 
@@ -128,7 +112,3 @@ class RpiDns(object):
             data = self.cur.fetchone()
             self.con.close()
             return data[0]
-
-
-if __name__ == '__main__':
-    raise AuxiliarFileError("Can't open file because it's an auxiliar file.")

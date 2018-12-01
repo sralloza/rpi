@@ -3,7 +3,7 @@
 import json
 
 from .dns import RpiDns
-from .exceptions import MissingKeyError, AuxiliarFileError
+from .exceptions import MissingKeyError
 from .rpi_logging import Logger
 
 logger = Logger.get(__file__, __name__)
@@ -20,29 +20,22 @@ class GestorClaves(object):
 
     @staticmethod
     def keys():
-        """Devuelve los servicios registrados.
+        """Devuelve los servicios registrados."""
 
-        :rtype: tuple
-
-        """
         self = object.__new__(GestorClaves)
         self.__init__()
 
         return tuple(self.dict.keys())
 
     def save(self):
+        """Guarda las claves."""
         if self.dict is not None:
             with open(self.path, 'wt') as f:
                 json.dump(self.dict, f, ensure_ascii=False, indent=4, sort_keys=True)
 
     @staticmethod
     def nueva(servicio, password):
-        """Añade una nueva clave al servicio.
-
-        :param str servicio: servicio a registrar.
-        :param str password: contraseña a registrar.
-
-        """
+        """Añade una nueva clave al servicio."""
 
         self = object.__new__(GestorClaves)
         self.__init__()
@@ -52,12 +45,7 @@ class GestorClaves(object):
 
     @staticmethod
     def get(clave):
-        """Devuelve una clave.
-
-        :param str clave: palabra a buscar.
-        :raises MissingKeyError: la clave no se encuentra en el registro.
-
-        """
+        """Devuelve una clave."""
 
         self = object.__new__(GestorClaves)
         self.__init__()
@@ -69,7 +57,3 @@ class GestorClaves(object):
             raise MissingKeyError(f"La clave '{clave}' no se encuentra en el archivo de claves.")
 
         return self.dict[clave]
-
-
-if __name__ == '__main__':
-    raise AuxiliarFileError('Archivo auxiliar, no se puede ejecutar.')
