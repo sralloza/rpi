@@ -45,7 +45,7 @@ class Logger:
             # Prevent logging from propagating to the root logger
             logger.propagate = 0
 
-            formato = '[%(asctime)s].[{id:04d}] %(module)s:%(lineno)s - %(levelname)s: %(message)s'
+            formato = '[%(asctime)s].[{id:04d}] %(levelname)s - %(module)s:%(lineno)s: %(message)s'
             formato2 = '%H:%M:%S'
 
             basepath = RpiDns.get('folder.logs')
