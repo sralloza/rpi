@@ -4,7 +4,7 @@ from crontab import CronTab, CronItem
 
 from rpi import plataforma
 from rpi.gestor_servicios import GestorServicios
-from .exceptions import JobNotFoundError, ExistingJobError
+from .exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
 
 
 class GestorCrontab(object):
@@ -41,8 +41,18 @@ class GestorCrontab(object):
             raise ExistingJobError(f'Ya existe el trabajo: {job!r}')
         self.cron.write()
 
-    def eliminar(self, hashcode):
+    def eliminar(self, anything):
         """Alias para GestorCrontab.eliminar_por_hash()."""
+
+        if isinstance(anything, CronItem):
+            hashcode = GestorCrontab.job_to_hash(anything)
+        elif isinstance(anything, int):
+            hashcode=anything
+        elif isinstance(anything, str):
+            hashcode=int(anything)
+        else:
+            raise InvalidArgumentError(f'Tipo incorrecto ({type(anything).__name__!r})')
+
         return self.eliminar_por_hash(hashcode)
 
     def eliminar_por_hash(self, hashcode):
@@ -64,7 +74,13 @@ class GestorCrontab(object):
 
     def listar_por_usuario(self, usuario):
         """Devuelve una lista con todas las tareas de un usuario"""
-        return list(self.cron.find_comment(usuario))
+
+        try:
+            username = usuario.username
+        except AttributeError:
+            username = usuario
+
+        return list(self.cron.find_comment(username))
 
     @staticmethod
     def job_to_hash(job: CronItem):
