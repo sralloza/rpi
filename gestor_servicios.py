@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-from typing import List
+from typing import List, Union
 from warnings import warn
 
 from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, InvalidArgumentError
@@ -38,8 +38,27 @@ class Comando(object):
 class ServicioRaspberry(object):
     DEFAULT = {'PYTHON': '/usr/local/bin/python3'}
 
-    def __init__(self, nombre, comando, opciones: List[Opcion] = None, ruta='', rutas_extra=None, datos=None,
-                 esabstracto=False, espublico=False):
+    def __init__(self, nombre: str, comando: Comando, opciones: List[Opcion] = None, ruta: str = '',
+                 rutas_extra: Union[tuple, list] = None, datos: object = None, esabstracto: bool = False,
+                 espublico: bool = False):
+
+        # COMPROBACIONES DE TIPOS DE VARIABLES
+        if isinstance(nombre, str) is False:
+            raise InvalidArgumentError(f"El nombre del Servicio debe ser str, no {type(nombre).__name__!r}")
+
+        if isinstance(comando, Comando) is False:
+            raise InvalidArgumentError(f"El comando debe ser de tipo Comando, no {type(nombre).__name__!r}")
+
+        if isinstance(opciones, (list, tuple)) is False:
+            raise InvalidArgumentError(f"El las opciones deben ser list o tuple, no {type(nombre).__name__!r}")
+
+        if isinstance(rutas_extra, str):
+            rutas_extra = (rutas_extra,)
+        try:
+            self.rutas_extra = tuple(rutas_extra)
+        except TypeError:
+            raise InvalidArgumentError(f'Invalid type ({type(rutas_extra).__nombre__})')
+
         if datos is None:
             datos = ()
 
@@ -51,25 +70,16 @@ class ServicioRaspberry(object):
 
         rutas_extra = rutas_extra if rutas_extra is not None else tuple()
 
-        if isinstance(rutas_extra, str):
-            rutas_extra = (rutas_extra,)
-        try:
-            self.rutas_extra = tuple(rutas_extra)
-        except TypeError:
-            raise InvalidArgumentError(f'Invalid type ({type(rutas_extra).__nombre__})')
+        self.rutas_todas = self.rutas_extra + (self.ruta,)
 
-        self.basenombres = tuple([os.path.basename(x).lower() for x in self.rutas_extra])
-
-        if isinstance(datos, str):
-            datos = (datos,)
-        try:
-            self.datos = tuple(datos)
-        except TypeError:
-            raise InvalidArgumentError(f'Invalid type ({type(datos).__nombre__})')
+        # lista de nombres de archivo con extensión (enviar.py, aemet.py, ...)
+        self.nombres_con_ext = tuple([os.path.basename(x).lower() for x in self.rutas_todas])
 
         self.datos = datos
         self.espublico = espublico
-        self.nombres = [os.path.splitext(x)[0].lower() for x in self.basenombres]
+
+        # lista de nombres de archivo sin extensión (enviar, aemet, ...)
+        self.nombres_sin_ext = [os.path.splitext(x)[0].lower() for x in self.nombres_con_ext]
 
     def __repr__(self):
         return f"ServicioRaspberry({self.nombre})"
@@ -78,16 +88,16 @@ class ServicioRaspberry(object):
     def nombres_opciones(self):
         return [x.nombre for x in self.opciones]
 
-    def isfile(self, other):
-        return self.ispath(other)
-
-    def ispath(self, other):
+    def corresponde_con(self, other):
         other = os.path.basename(other).lower()
-        condition = other in self.basenombres
 
-        if condition is False:
-            return other in self.nombres
-        return condition
+        if other in self.nombres_con_ext:
+            return True
+
+        if other in self.nombres_sin_ext:
+            return True
+
+        return False
 
     def generar_comando(self, **kwargs):
         kwargs.update(**ServicioRaspberry.DEFAULT)
@@ -212,9 +222,7 @@ class GestorServicios(Enum):
 
         basepath = os.path.basename(basepath).lower()
         for servicio in GestorServicios:
-            if servicio.name.lower() == basepath:
-                return servicio.value
-            if servicio.value.isfile(basepath):
+            if servicio.value.corresponde_con(basepath):
                 return servicio.value
 
         warn(f"Servicio no reconocido: {basepath}", UnrecognisedServiceWarning)
