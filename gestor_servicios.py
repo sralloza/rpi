@@ -212,7 +212,7 @@ class GestorServicios(Enum):
 
         basepath = os.path.basename(basepath).lower()
         for servicio in GestorServicios:
-            if servicio.nombre.lower() == basepath:
+            if servicio.name.lower() == basepath:
                 return servicio.value
             if servicio.value.isfile(basepath):
                 return servicio.value
