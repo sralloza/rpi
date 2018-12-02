@@ -77,7 +77,10 @@ class Logger:
             with open(filename, encoding='utf-8') as fh:
                 logs = fh.read()
 
-            Logger.ID = max([int(x.group(1)) for x in re.finditer(r'\[\d{2}:\d{2}:\d{2}\].\[(\d+)\]', logs)]) + 1
+            try:
+                Logger.ID = max([int(x.group(1)) for x in re.finditer(r'\[\d{2}:\d{2}:\d{2}\].\[(\d+)\]', logs)]) + 1
+            except ValueError:
+                Logger.ID = 1
 
             formatter = logging.Formatter(formato.format(**{'id': Logger.ID}), formato2)
 

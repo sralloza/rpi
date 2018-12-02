@@ -9,9 +9,9 @@ from .exceptions import UnrecognisedUsernameError
 from .gestor_usuarios import rpi_gu
 
 
-
 def report_error(error):
     Conexiones.enviar_email(ADMIN_EMAIL, 'ERROR REPORTADO', error, origin='RpiWeb Error Reporter')
+
 
 def main():
     if len(sys.argv) <= 1:

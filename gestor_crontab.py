@@ -3,8 +3,8 @@
 from crontab import CronTab, CronItem
 
 from . import plataforma
-from .gestor_servicios import GestorServicios
 from .exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
+from .gestor_servicios import GestorServicios
 
 
 class GestorCrontab(object):
@@ -41,7 +41,7 @@ class GestorCrontab(object):
                 contador += 1
 
         if contador > 1:
-            raise ExistingJobError(f'Ya existe el trabajo: {job!r}')
+            raise ExistingJobError(f'Ya existe el trabajo: {new_job!r}')
         self.cron.write()
 
     def eliminar(self, anything):
@@ -50,16 +50,16 @@ class GestorCrontab(object):
         if isinstance(anything, CronItem):
             hashcode = GestorCrontab.job_to_hash(anything)
         elif isinstance(anything, int):
-            hashcode=anything
+            hashcode = anything
         elif isinstance(anything, str):
-            hashcode=int(anything)
+            hashcode = int(anything)
         else:
             raise InvalidArgumentError(f'Tipo incorrecto ({type(anything).__name__!r})')
-
         return self.eliminar_por_hash(hashcode)
 
     def eliminar_por_hash(self, hashcode):
         """Elimina una tarea a partir de su hash generado por GestorCrontab.job_to_hash()."""
+
         select = None
         jobs = list(self.cron)
 
@@ -88,4 +88,5 @@ class GestorCrontab(object):
     @staticmethod
     def job_to_hash(job: CronItem):
         """Devuelve un valor hash a partir de una tarea"""
+
         return hash(str(vars(job)))
