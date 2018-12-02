@@ -54,6 +54,9 @@ class ServicioRaspberry(object):
 
         if isinstance(rutas_extra, str):
             rutas_extra = (rutas_extra,)
+
+        rutas_extra = rutas_extra if rutas_extra is not None else tuple()
+
         try:
             self.rutas_extra = tuple(rutas_extra)
         except TypeError:
@@ -67,8 +70,6 @@ class ServicioRaspberry(object):
         self.opciones = opciones if opciones is not None else list()
         self.ruta = ruta
         self.esabstracto = esabstracto
-
-        rutas_extra = rutas_extra if rutas_extra is not None else tuple()
 
         self.rutas_todas = self.rutas_extra + (self.ruta,)
 
