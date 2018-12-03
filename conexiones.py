@@ -127,7 +127,7 @@ class Conexiones:
                 continue
             if servicio not in usuario.servicios and _forzar_notificacion is False:
                 logger.warning(
-                    f"El usuario '{usuario.username}' no está registrado en el servicio '{servicio.name}'")
+                    f"El usuario '{usuario.username}' no está registrado en el servicio '{servicio.nombre}'")
                 continue
 
             logger.debug('Iniciando hilo de conexión de ' + usuario.username)

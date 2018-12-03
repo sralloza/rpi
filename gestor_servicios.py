@@ -164,7 +164,7 @@ class GestorServicios(Enum):
             ruta='/home/pi/scripts/vcs.py',
         ),
         opciones=[
-            Opcion('fecha', 'time', incluir=False),
+            Opcion('hora', 'time', incluir=False),
         ],
         ruta='/home/pi/scripts/vcs.py',
         datos=['campus_username', 'campus_password'],
