@@ -2,8 +2,8 @@
 
 from crontab import CronTab, CronItem
 
-from . import plataforma
-from .exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
+from rpi import plataforma
+from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
 from .gestor_servicios import GestorServicios
 
 

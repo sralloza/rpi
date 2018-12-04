@@ -6,7 +6,7 @@ import sys
 from . import __VERSION__ as VERSION, ADMIN_EMAIL
 from .conexiones import Conexiones
 from .exceptions import UnrecognisedUsernameError
-from .gestor_usuarios import rpi_gu
+from .gestores.gestor_usuarios import rpi_gu
 
 
 def report_error(error):

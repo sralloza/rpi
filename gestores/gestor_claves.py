@@ -2,9 +2,9 @@
 
 import json
 
-from .dns import RpiDns
-from .exceptions import MissingKeyError
-from .rpi_logging import Logger
+from rpi.dns import RpiDns
+from rpi.exceptions import MissingKeyError
+from rpi.rpi_logging import Logger
 
 logger = Logger.get(__file__, __name__)
 

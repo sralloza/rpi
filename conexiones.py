@@ -23,8 +23,8 @@ from .dns import RpiDns
 from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError, \
     AuxiliarFileError
-from .gestor_claves import GestorClaves
-from .gestor_usuarios import GestorServicios, rpi_gu
+from .gestores.gestor_claves import GestorClaves
+from .gestores.gestor_usuarios import GestorServicios, rpi_gu
 from .rpi_logging import Logger
 
 debug_lock = Lock()
