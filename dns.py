@@ -60,14 +60,16 @@ class RpiDns(object):
         return data
 
     @staticmethod
-    def insert(alias, address):
+    def nuevo(alias, windows, linux):
         """Inserta un nuevo alias en el registro."""
 
         self = object.__new__(RpiDns)
         self.__init__()
 
-        data = (alias, address)
-        self.cur.execute("INSERT INTO dns VALUES(NULL, ?, ?)", data)
+        data_windows = ('windows.' + alias, windows)
+        data_linux = ('linux.' + alias, linux)
+        self.cur.execute("INSERT INTO dns VALUES(NULL, ?, ?)", data_windows)
+        self.cur.execute("INSERT INTO dns VALUES(NULL, ?, ?)", data_linux)
         self.con.commit()
         self.con.close()
 
