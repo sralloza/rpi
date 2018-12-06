@@ -1,27 +1,48 @@
-import base64
-import random
-import string
+from cryptography.fernet import Fernet
+
+from rpi.gestores.gestor_config import GestorConfig
 
 
-def encriptar(key, clear):
-    enc = []
-    for i in range(len(clear)):
-        key_c = key[i % len(key)]
-        enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
-        enc.append(enc_c)
-    return base64.urlsafe_b64encode("".join(enc).encode()).decode()
+def encrypt(something, key=None):
+    fernet = get_fernet(key)
+    if isinstance(something, str):
+        something = something.encode()
+
+    return fernet.encrypt(something)
 
 
-def desencriptar(key, enc):
-    dec = []
-    enc = base64.urlsafe_b64decode(enc).decode()
-    for i in range(len(enc)):
-        key_c = key[i % len(key)]
-        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
-        dec.append(dec_c)
-    return "".join(dec)
+def encriptar(something, key=None):
+    return encrypt(something, key)
 
 
-def generar_clave(n=128):
-    return ''.join(
-        random.SystemRandom().choice(string.punctuation + string.ascii_letters + string.digits) for _ in range(n))
+def decrypt(something, key=None):
+    fernet = get_fernet(key)
+    if isinstance(something, str):
+        something = something.encode()
+    return fernet.decrypt(something)
+
+
+def desencriptar(something, key=None):
+    return decrypt(something, key)
+
+
+def get_fernet(key=None):
+    if key is None:
+        aes_key = GestorConfig.get('aes_key')
+    else:
+        aes_key = key
+
+    aes_key = aes_key.encode()
+    return Fernet(aes_key)
+
+
+def encrypt_file(filename, key=None):
+    fernet = get_fernet(key)
+
+    with open(filename, 'rb') as fh:
+        c = fh.read()
+
+    c = fernet.encrypt(c)
+
+    with open(filename, 'wb') as fh:
+        fh.write(c)

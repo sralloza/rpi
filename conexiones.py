@@ -21,8 +21,7 @@ from requests.exceptions import ConnectionError
 
 from .dns import RpiDns
 from .downloader import Downloader
-from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError, \
-    AuxiliarFileError
+from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError
 from .gestores.gestor_claves import GestorClaves
 from .gestores.gestor_usuarios import GestorServicios, rpi_gu
 from .rpi_logging import Logger
@@ -395,7 +394,3 @@ class Conexiones:
             if intentos == 0:
                 logger.error('Error fatal guardando información en spreadsheets (' + str(error_code) + ')')
                 break
-
-
-if __name__ == '__main__':
-    raise AuxiliarFileError('Archivo auxiliar, no ejecutable.')

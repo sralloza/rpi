@@ -91,6 +91,14 @@ class UnableToSave(BaseError):
     """No se puede guardar"""
 
 
+class ConfigNotFoundError(BaseError):
+    """Configuración no encontrada."""
+
+
+class EmptyConfigError(BaseError):
+    """No hay configuración que guardar."""
+
+
 # WARNINGS
 
 class BaseWarning(Warning):
