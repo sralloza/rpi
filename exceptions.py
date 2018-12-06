@@ -99,6 +99,14 @@ class EmptyConfigError(BaseError):
     """No hay configuración que guardar."""
 
 
+class MissingOptionsError(BaseError):
+    """No se han especificado las opciones."""
+
+
+class InvalidOptionError(BaseError):
+    """La opción no es válida."""
+
+
 # WARNINGS
 
 class BaseWarning(Warning):

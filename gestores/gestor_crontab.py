@@ -20,17 +20,14 @@ class GestorCrontab(object):
     def __iter__(self):
         return iter(self.cron)
 
-    def nuevo(self, servicio, usuario, hora, minutos, *extra):
+    def nuevo(self, comando, usuario, hora, minutos):
         """Crea una nueva tarea en crontab."""
-
-        servicio = GestorServicios.get(servicio)
-        command = GestorCrontab.BASE + servicio.ruta + ' ' + ' '.join(extra)
 
         try:
             username = usuario.username
         except AttributeError:
             username = usuario
-        new_job = self.cron.new(command, comment=username)
+        new_job = self.cron.new(comando, comment=username)
         new_job.hour.on(hora)
         new_job.minutes.on(minutos)
 

@@ -3,7 +3,8 @@ from enum import Enum
 from typing import List, Union
 from warnings import warn
 
-from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, InvalidArgumentError
+from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, InvalidArgumentError, \
+    MissingOptionsError, InvalidOptionError
 
 
 class Opcion(object):
@@ -73,14 +74,8 @@ class ServicioRaspberry(object):
 
         self.rutas_todas = self.rutas_extra + (self.ruta,)
 
-        # lista de nombres de archivo con extensión (enviar.py, aemet.py, ...)
-        self.nombres_con_ext = tuple([os.path.basename(x).lower() for x in self.rutas_todas])
-
         self.datos = datos
         self.espublico = espublico
-
-        # lista de nombres de archivo sin extensión (enviar, aemet, ...)
-        self.nombres_sin_ext = [os.path.splitext(x)[0].lower() for x in self.nombres_con_ext]
 
     def __repr__(self):
         return f"ServicioRaspberry({self.nombre})"
@@ -89,8 +84,21 @@ class ServicioRaspberry(object):
     def nombres_opciones(self):
         return [x.nombre for x in self.opciones]
 
+    @property
+    def nombres_con_ext(self):
+        """lista de nombres de archivo con extensión (enviar.py, aemet.py, ...)."""
+        return tuple([os.path.basename(x).lower() for x in self.rutas_todas])
+
+    @property
+    def nombres_sin_ext(self):
+        """lista de nombres de archivo sin extensión (enviar, aemet, ...)."""
+        return [os.path.splitext(x)[0].lower() for x in self.nombres_con_ext]
+
     def corresponde_con(self, other):
         other = os.path.basename(other).lower()
+
+        if other == self.nombre.lower():
+            return True
 
         if other in self.nombres_con_ext:
             return True
@@ -107,6 +115,7 @@ class ServicioRaspberry(object):
         if 'opciones' in kwargs:
             kwargs['OPCIONES'] = kwargs['opciones']
             del kwargs['opciones']
+
         if 'usuario' in kwargs:
             kwargs['USUARIO'] = kwargs['usuario']
             del kwargs['usuario']
@@ -114,9 +123,9 @@ class ServicioRaspberry(object):
         try:
             for opt in kwargs['OPCIONES']:
                 if opt not in self.nombres_opciones:
-                    raise RuntimeError
+                    raise InvalidOptionError(f'La opción {opt!r} no está registrada ({self.nombres_opciones!r})')
         except KeyError:
-            raise RuntimeError
+            raise MissingOptionsError('No se han especificado las opciones')
 
         return self.comando.format(**kwargs)
 
