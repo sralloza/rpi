@@ -46,3 +46,23 @@ def encrypt_file(filename, key=None):
 
     with open(filename, 'wb') as fh:
         fh.write(c)
+
+
+def encriptar_archivo(filename, key=None):
+    return encrypt_file(filename, key)
+
+
+def decrypt_file(filename, key=None):
+    fernet = get_fernet(key)
+
+    with open(filename, 'rb') as fh:
+        c = fh.read()
+
+    c = fernet.decrypt(c)
+
+    with open(filename, 'wb') as fh:
+        fh.write(c)
+
+
+def desencriptar_archivo(filename, key=None):
+    return decrypt_file(filename, key)
