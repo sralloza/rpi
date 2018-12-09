@@ -9,12 +9,12 @@ from sqlite3 import IntegrityError
 from typing import List
 
 from bs4 import BeautifulSoup as Soup
-from rpi.gestor_usuarios import rpi_gu
 
 from rpi.conexiones import Conexiones
 from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import WrongCalledError, InvalidMonthError, InvalidDayError, DownloaderError
+from rpi.gestores.gestor_usuarios import rpi_gu
 from rpi.launcher import BaseMinimalLauncher
 from rpi.rpi_logging import Logger
 

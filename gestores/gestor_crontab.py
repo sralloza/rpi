@@ -4,7 +4,6 @@ from crontab import CronTab, CronItem
 
 from rpi import plataforma
 from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
-from .gestor_servicios import GestorServicios
 
 
 class GestorCrontab(object):
@@ -20,8 +19,12 @@ class GestorCrontab(object):
     def __iter__(self):
         return iter(self.cron)
 
-    def nuevo(self, comando, usuario, hora, minutos):
+    @staticmethod
+    def nuevo(comando, usuario, hora, minutos):
         """Crea una nueva tarea en crontab."""
+
+        self = GestorCrontab.__new__(GestorCrontab)
+        self.__init__()
 
         try:
             username = usuario.username
@@ -41,8 +44,12 @@ class GestorCrontab(object):
             raise ExistingJobError(f'Ya existe el trabajo: {new_job!r}')
         self.cron.write()
 
-    def eliminar(self, anything):
+    @staticmethod
+    def eliminar(anything):
         """Alias para GestorCrontab.eliminar_por_hash()."""
+
+        self = GestorCrontab.__new__(GestorCrontab)
+        self.__init__()
 
         if isinstance(anything, CronItem):
             hashcode = GestorCrontab.job_to_hash(anything)
@@ -54,8 +61,12 @@ class GestorCrontab(object):
             raise InvalidArgumentError(f'Tipo incorrecto ({type(anything).__name__!r})')
         return self.eliminar_por_hash(hashcode)
 
-    def eliminar_por_hash(self, hashcode):
+    @staticmethod
+    def eliminar_por_hash(hashcode):
         """Elimina una tarea a partir de su hash generado por GestorCrontab.job_to_hash()."""
+
+        self = GestorCrontab.__new__(GestorCrontab)
+        self.__init__()
 
         select = None
         jobs = list(self.cron)
@@ -72,8 +83,12 @@ class GestorCrontab(object):
 
         self.cron.write()
 
-    def listar_por_usuario(self, usuario):
+    @staticmethod
+    def listar_por_usuario(usuario):
         """Devuelve una lista con todas las tareas de un usuario"""
+
+        self = GestorCrontab.__new__(GestorCrontab)
+        self.__init__()
 
         try:
             username = usuario.username

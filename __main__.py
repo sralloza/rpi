@@ -5,7 +5,6 @@ import sys
 
 from . import __VERSION__ as VERSION, ADMIN_EMAIL
 from .conexiones import Conexiones
-from .exceptions import UnrecognisedUsernameError
 from .gestores.gestor_usuarios import rpi_gu
 
 
@@ -25,7 +24,6 @@ def main():
 
     usuarios_parser = subparser.add_parser('usuarios')
 
-    usuarios_parser.add_argument('-eliminar', help='eliminar usuario')
     usuarios_parser.add_argument('-ver', help='ver usuarios', action='store_true')
     usuarios_parser.add_argument('-usernames', help='ver usernames', action='store_true')
 
@@ -63,16 +61,6 @@ def main():
         if opt['usernames'] is True:
             print(rpi_gu.usernames)
             return
-
-    if 'eliminar' in opt:
-        try:
-            rpi_gu.delete(opt['eliminar'])
-            rpi_gu.save()
-        except UnrecognisedUsernameError as err:
-            print(err)
-        else:
-            print(f"Usuario '{opt['eliminar']}' eliminado correctamente")
-        return
 
     if 'titulo' in opt:
         Conexiones.DISABLE = False

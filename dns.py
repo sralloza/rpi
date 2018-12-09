@@ -102,6 +102,9 @@ class RpiDns(object):
         self.__init__()
 
         splitted = alias.split('.')
+
+        if len(splitted) < 2:
+            raise DnsError('Se deben aportar 2 o 3 etiquetas')
         if len(splitted) == 2:
             alias = platform.system().lower() + '.' + '.'.join(splitted)
 

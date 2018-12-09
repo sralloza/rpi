@@ -5,6 +5,7 @@ import os
 import platform
 import smtplib
 import sqlite3
+import warnings
 from _socket import gaierror
 from email import encoders
 from email.mime.base import MIMEBase
@@ -144,7 +145,6 @@ class Conexiones:
         if len(self.errores) > 0:
             report['destino'] = self.errores
             report['code'] = 404
-            Conexiones.log('Notificacion', str(report))
             logger.error('Errores en notificación: ' + str(report))
             return False
         else:
@@ -258,6 +258,8 @@ class Conexiones:
         :param str servicio: servicio que quiere hacer el log.
         :param str info: información a loguear.
         """
+
+        warnings.warn('La función Conexiones.log será eliminada en futuras versiones', DeprecationWarning)
 
         logger.debug(f'Guardar log - [{servicio}] {info}')
         intentos = 10
