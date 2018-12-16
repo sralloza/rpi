@@ -1,7 +1,8 @@
-def segs_to_str(segundos, abreviado=False):
+def segs_to_str(segundos, abreviado=False, entero=False):
     """Devuelve los segundos transformados en String."""
 
-    # segundos = int(segundos)
+    if entero is True:
+        segundos = int(segundos)
 
     if abreviado is False:
         dia = 'día'
