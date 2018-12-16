@@ -22,7 +22,7 @@ def segs_to_str(segundos, abreviado=False, entero=False):
     has_before = [False, False, False, False]
     has_not_zero = [0, 0, 0, 0]
 
-    h, m, s = dividir_segundos(segundos)
+    h, m, s = dividir_segundos(segundos, entero=entero)
     d = int(h / 24)
     h = h % 24
 
@@ -93,7 +93,7 @@ def segs_to_str(segundos, abreviado=False, entero=False):
     return ret
 
 
-def dividir_segundos(totalsegundos, days=False):
+def dividir_segundos(totalsegundos, days=False, entero=False):
     """Transforma segundos en horas,minutos y segundos."""
 
     # totalsegundos = int(totalsegundos)
@@ -104,6 +104,11 @@ def dividir_segundos(totalsegundos, days=False):
     minutos = totalminutos % 60
 
     segundos = round(segundos, 2)
+
+    if entero is True:
+        horas = int(horas)
+        minutos = int(minutos)
+        segundos = int(segundos)
 
     if not days:
         return horas, minutos, segundos
