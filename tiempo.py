@@ -1,4 +1,4 @@
-def segs_to_str(segundos, abreviado=False, entero=False):
+def segs_to_str(segundos, abreviado=False, entero=True):
     """Devuelve los segundos transformados en String."""
 
     if entero is True:
@@ -59,7 +59,7 @@ def segs_to_str(segundos, abreviado=False, entero=False):
     ret = ""
 
     if d:
-        ret += "{:.0f} {}".format(d, dia)
+        ret += "{} {}".format(d, dia)
         if d - 1:
             ret += s_final
     if h:
@@ -67,7 +67,7 @@ def segs_to_str(segundos, abreviado=False, entero=False):
             ret += s_last
         elif has_before[1]:
             ret += before
-        ret += "{:.0f} {}".format(h, hora)
+        ret += "{} {}".format(h, hora)
         if h - 1:
             ret += s_final
     if m:
@@ -75,7 +75,7 @@ def segs_to_str(segundos, abreviado=False, entero=False):
             ret += s_last
         elif has_before[2]:
             ret += before
-        ret += "{:.0f} {}".format(m, minuto)
+        ret += "{} {}".format(m, minuto)
         if m - 1:
             ret += s_final
     if s:
@@ -83,11 +83,13 @@ def segs_to_str(segundos, abreviado=False, entero=False):
             ret += s_last
         elif has_before[3]:
             ret += before
-        ret += "{:.2f} {}".format(s, segundo)
+        ret += "{} {}".format(s, segundo)
         if s - 1:
             ret += s_final
 
     if s == m == h == d == 0:
+        if abreviado is True:
+            return '0 s'
         return '0 segundos'
 
     return ret
