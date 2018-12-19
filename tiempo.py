@@ -1,4 +1,4 @@
-def segs_to_str(segundos, abreviado=False, entero=True):
+def segs_to_str(segundos, abreviado=False, entero=None):
     """Devuelve los segundos transformados en String."""
 
     if entero is True:
@@ -95,7 +95,7 @@ def segs_to_str(segundos, abreviado=False, entero=True):
     return ret
 
 
-def dividir_segundos(totalsegundos, days=False, entero=False):
+def dividir_segundos(totalsegundos, days=False, entero=None):
     """Transforma segundos en horas,minutos y segundos."""
 
     # totalsegundos = int(totalsegundos)
@@ -107,10 +107,12 @@ def dividir_segundos(totalsegundos, days=False, entero=False):
 
     segundos = round(segundos, 2)
 
-    if entero is True:
+    if entero is not False:
         horas = int(horas)
         minutos = int(minutos)
-        segundos = int(segundos)
+        if not (horas == minutos == 0 and int(segundos) < 1 and entero is None):
+            segundos = int(segundos)
+
 
     if not days:
         return horas, minutos, segundos
