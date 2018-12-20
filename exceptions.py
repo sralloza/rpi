@@ -107,6 +107,14 @@ class InvalidOptionError(BaseError):
     """La opción no es válida."""
 
 
+class SpreadsheetNotFoundError(BaseError):
+    """Hoja de cálculo no encontrada."""
+
+
+class SheetNotFoundError(BaseError):
+    """Hoja de cálculo no encontrada."""
+
+
 # WARNINGS
 
 class BaseWarning(Warning):

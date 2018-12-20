@@ -16,13 +16,14 @@ from threading import Lock, Thread
 import gspread
 import httplib2
 from gspread import WorksheetNotFound
-from gspread.exceptions import APIError
+from gspread.exceptions import APIError, SpreadsheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials as Sac
 from requests.exceptions import ConnectionError
 
 from .dns import RpiDns
 from .downloader import Downloader
-from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError
+from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, ApiError, DownloaderError, \
+    SpreadsheetNotFoundError, SheetNotFoundError
 from .gestores.gestor_claves import GestorClaves
 from .gestores.gestor_usuarios import GestorServicios, rpi_gu
 from .rpi_logging import Logger
@@ -392,6 +393,115 @@ class Conexiones:
                 logger.warning('Error del sistema, reintentando')
                 intentos -= 1
                 error_code = 418
+
+            if intentos == 0:
+                logger.error('Error fatal guardando información en spreadsheets (' + str(error_code) + ')')
+                break
+
+    @staticmethod
+    def to_google_spreadsheets(filename, sheetname, data):
+        """Guarda la información en tuplas data en la hoja de cálculo sheetname.
+        :param str sheetname: nombre de la hoja donde se guardará la información.
+        :param tuple data: información a guardar.
+
+        """
+
+        logger.debug(f'Google Spreadsheets - [{sheetname}] {data}')
+        intentos = 10
+
+        logger.debug('Iniciando log.spreadsheets')
+        while True:
+            try:
+                # Cosas raras que hay que hacer para usar Google Sheets
+                scope = ['https://spreadsheets.google.com/feeds',
+                         'https://www.googleapis.com/auth/drive']
+
+                credentials = Sac.from_json_keyfile_name(RpiDns.get('credenciales.googlesheets'), scope)
+                gcc = gspread.authorize(credentials)
+
+                # Abrimos Spreadsheet llamada 'pylog', en la hoja 'logs'
+                try:
+                    archivo = gcc.open(filename)
+                except SpreadsheetNotFound:
+                    logger.critical(f'No se encuentra el archivo {filename!r}')
+                    raise SpreadsheetNotFoundError(f'No se encuentra el archivo {filename!r}')
+
+                try:
+                    wks = archivo.worksheet(sheetname)
+                except WorksheetNotFound:
+                    logger.critical(f'Hoja de cálculo no encontrada: {sheetname!r}')
+                    raise SheetNotFoundError(f'Hoja de cálculo no encontrada: {sheetname!r}')
+
+                # Insertamos los datos en una nueva línea
+                try:
+                    wks.append_row(data)
+                except APIError as e:
+                    error = str(e)
+                    error_evaluado = eval(error)
+                    error_code = error_evaluado['error']['code']
+                    error_message = error_evaluado['error']['message']
+                    logger.critical(f"APIERROR: [{error_code}] '{error_message}'")
+                    raise ApiError(f"[{error_code}] '{error_message}'")
+                break
+
+            except httplib2.ServerNotFoundError:
+                logger.warning('Error buscando el servidor, reintentando')
+                intentos -= 1
+                error_code = 404
+
+            if intentos == 0:
+                logger.error('Error fatal guardando información en spreadsheets (' + str(error_code) + ')')
+                break
+
+    @staticmethod
+    def from_google_spreadsheets(filename, sheetname):
+        """Guarda la información en tuplas data en la hoja de cálculo sheetname.
+        :param str sheetname: nombre de la hoja donde se guardará la información.
+        :param tuple data: información a guardar.
+
+        """
+
+        logger.debug(f'Google Spreadsheets - [{filename}] {sheetname}')
+        intentos = 10
+
+        logger.debug('Iniciando log.spreadsheets')
+        while True:
+            try:
+                # Cosas raras que hay que hacer para usar Google Sheets
+                scope = ['https://spreadsheets.google.com/feeds',
+                         'https://www.googleapis.com/auth/drive']
+
+                credentials = Sac.from_json_keyfile_name(RpiDns.get('credenciales.googlesheets'), scope)
+                gcc = gspread.authorize(credentials)
+
+                # Abrimos Spreadsheet llamada 'pylog', en la hoja 'logs'
+                try:
+                    archivo = gcc.open(filename)
+                except SpreadsheetNotFound:
+                    logger.critical(f'No se encuentra el archivo {filename!r}')
+                    raise SpreadsheetNotFoundError(f'No se encuentra el archivo {filename!r}')
+
+                try:
+                    wks = archivo.worksheet(sheetname)
+                except WorksheetNotFound:
+                    logger.critical(f'Hoja de cálculo no encontrada: {sheetname!r}')
+                    raise SheetNotFoundError(f'Hoja de cálculo no encontrada: {sheetname!r}')
+
+                # Insertamos los datos en una nueva línea
+                try:
+                    return wks.get_all_records()
+                except APIError as e:
+                    error = str(e)
+                    error_evaluado = eval(error)
+                    error_code = error_evaluado['error']['code']
+                    error_message = error_evaluado['error']['message']
+                    logger.critical(f"APIERROR: [{error_code}] '{error_message}'")
+                    raise ApiError(f"[{error_code}] '{error_message}'")
+
+            except httplib2.ServerNotFoundError:
+                logger.warning('Error buscando el servidor, reintentando')
+                intentos -= 1
+                error_code = 404
 
             if intentos == 0:
                 logger.error('Error fatal guardando información en spreadsheets (' + str(error_code) + ')')
