@@ -3,27 +3,19 @@ from cryptography.fernet import Fernet
 from rpi.gestores.gestor_config import GestorConfig
 
 
-def encrypt(something, key=None):
+def encrypt(anything, key=None):
     fernet = get_fernet(key)
-    if isinstance(something, str):
-        something = something.encode()
+    if isinstance(anything, str):
+        anything = anything.encode()
 
-    return fernet.encrypt(something)
-
-
-def encriptar(something, key=None):
-    return encrypt(something, key)
+    return fernet.encrypt(anything)
 
 
-def decrypt(something, key=None):
+def decrypt(anything, key=None):
     fernet = get_fernet(key)
-    if isinstance(something, str):
-        something = something.encode()
-    return fernet.decrypt(something)
-
-
-def desencriptar(something, key=None):
-    return decrypt(something, key)
+    if isinstance(anything, str):
+        anything = anything.encode()
+    return fernet.decrypt(anything)
 
 
 def get_fernet(key=None):
@@ -48,10 +40,6 @@ def encrypt_file(filename, key=None):
         fh.write(c)
 
 
-def encriptar_archivo(filename, key=None):
-    return encrypt_file(filename, key)
-
-
 def decrypt_file(filename, key=None):
     fernet = get_fernet(key)
 
@@ -62,7 +50,3 @@ def decrypt_file(filename, key=None):
 
     with open(filename, 'wb') as fh:
         fh.write(c)
-
-
-def desencriptar_archivo(filename, key=None):
-    return decrypt_file(filename, key)

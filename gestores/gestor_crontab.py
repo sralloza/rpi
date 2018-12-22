@@ -2,7 +2,7 @@
 
 from crontab import CronTab, CronItem
 
-from rpi import plataforma
+from rpi import operating_system
 from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
 
 
@@ -11,7 +11,7 @@ class GestorCrontab(object):
     BASE = '/usr/local/bin/python3 '
 
     def __init__(self):
-        if plataforma() == 'W':
+        if operating_system() == 'W':
             self.cron = CronTab(tabfile='D:/PYTHON/raspberry_pi/rpi/crontab.txt')
         else:
             self.cron = CronTab(user=True)

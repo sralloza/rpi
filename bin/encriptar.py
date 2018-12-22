@@ -2,7 +2,7 @@ import argparse
 
 from cryptography.fernet import InvalidToken
 
-from rpi.cifrado import encrypt_file
+from rpi.encryption import encrypt_file
 
 parser = argparse.ArgumentParser()
 parser.add_argument('file', help="archivo a encriptar")
