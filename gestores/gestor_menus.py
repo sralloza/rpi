@@ -10,7 +10,7 @@ from typing import List
 
 from bs4 import BeautifulSoup as Soup
 
-from rpi.conexiones import Conexiones
+from rpi.conexiones import Connections
 from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import WrongCalledError, InvalidMonthError, InvalidDayError, DownloaderError
@@ -755,9 +755,9 @@ class GestorMenus(object):
         if isinstance(destinos_notificacion, str):
             usuario = rpi_gu.get_by_username(destinos_notificacion).username
             if isinstance(usuario.launcher, BaseMinimalLauncher):
-                Conexiones.notificacion(titulo, mensaje_minimal, destino=usuario, file=__file__)
+                Connections.notificacion(titulo, mensaje_minimal, destinations=usuario, file=__file__)
             else:
-                Conexiones.notificacion(titulo, mensaje_normal, destino=usuario, file=__file__)
+                Connections.notificacion(titulo, mensaje_normal, destinations=usuario, file=__file__)
         else:
             try:
                 usuarios_normales = []
@@ -768,8 +768,8 @@ class GestorMenus(object):
                         usuarios_minimal.append(usuario.username)
                     else:
                         usuarios_normales.append(usuario.username)
-                Conexiones.notificacion(titulo, mensaje_normal, destino=usuarios_normales, file=__file__)
-                Conexiones.notificacion(titulo, mensaje_minimal, destino=usuarios_minimal, file=__file__)
+                Connections.notificacion(titulo, mensaje_normal, destinations=usuarios_normales, file=__file__)
+                Connections.notificacion(titulo, mensaje_minimal, destinations=usuarios_minimal, file=__file__)
             except TypeError:
                 raise TypeError(
                     '"destinos_notificacion" debe ser str o iterable, no ' + type(destinos_notificacion).__name__)

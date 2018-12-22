@@ -5,7 +5,7 @@ import datetime
 import time
 
 from rpi import info_plataforma, ADMIN_EMAIL
-from rpi.conexiones import Conexiones
+from rpi.conexiones import Connections
 from rpi.dns import RpiDns
 from rpi.exceptions import NeccessaryArgumentError
 from rpi.rpi_logging import Logger
@@ -102,14 +102,14 @@ def _enviar_main(id_recurso=None, keys=False):
     asunto += descripcion
     p += asunto
     p += '</span></h2><p>&nbsp;</p>'
-    mail = Conexiones.enviar_email(destino, asunto, p, files=archivo, force_file_name=realfilename,
-                                   origin='Rpi-Sender')
+    mail = Connections.send_email(destino, asunto, p, files=archivo, force_file_name=realfilename,
+                                  origin='Rpi-Sender')
     if mail is True:
-        notif = Conexiones.notificacion(
+        notif = Connections.notificacion(
             'Gestor de envíos', 'Petición aceptada:\n' + asunto, file=__file__)
         logger.debug('Gestor de envíos ' + info_plataforma() + ': Enviada "' + descripcion + '" a "' + destino + '"')
     else:
-        notif = Conexiones.notificacion(
+        notif = Connections.notificacion(
             'Gestor de envíos', 'Error al enviar "' + descripcion, file=__file__)
         logger.debug(
             'Gestor de envíos ' + info_plataforma() + ': Error al enviar "' + descripcion + '" a "' + destino + '"')

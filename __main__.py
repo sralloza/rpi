@@ -4,12 +4,12 @@ import argparse
 import sys
 
 from . import __VERSION__ as VERSION, ADMIN_EMAIL
-from .conexiones import Conexiones
+from .conexiones import Connections
 from .gestores.gestor_usuarios import rpi_gu
 
 
 def report_error(error):
-    Conexiones.enviar_email(ADMIN_EMAIL, 'ERROR REPORTADO', error, origin='RpiWeb Error Reporter')
+    Connections.send_email(ADMIN_EMAIL, 'ERROR REPORTADO', error, origin='RpiWeb Error Reporter')
 
 
 def main():
@@ -63,8 +63,8 @@ def main():
             return
 
     if 'titulo' in opt:
-        Conexiones.DISABLE = False
-        if Conexiones.notificacion(opt['titulo'], opt['mensaje'], opt['destinos'], _forzar_notificacion=True) is False:
+        Connections.DISABLE = False
+        if Connections.notificacion(opt['titulo'], opt['mensaje'], opt['destinos'], force=True) is False:
             print('Error en notificación')
         else:
             print('Notifiación enviada con éxito')
