@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from .exceptions import AuxiliarFileError
-
 
 class DinamicAttributes:
-    """Clase con propiedades modificables dinámicamente."""
+    """Class with dynamically modifiable properties."""
 
     def __init__(self, **kwargs):
         _dict = kwargs.pop('dict', None)
@@ -29,22 +27,15 @@ class DinamicAttributes:
 
     @property
     def dict(self):
-        """Devuelve toda la clase en forma de diccionario."""
         return self.__dict__
 
     def __str__(self):
-        """Devuelve un string creado a partir del objeto."""
         return str(self.dict)
 
     def __repr__(self):
-        """Devuelve el string de representación canónica del objeto."""
         foo = 'DinamicAttributes('
         keys, values = self.dict.keys(), self.dict.values()
         joined = [[x, y] for x, y in zip(keys, values)]
         pairs = [f"{k[0]}={k[1]}" if type(k[1]) != str else f"{k[0]}='{k[1]}'" for k in joined]
         foo += ", ".join(pairs)
         return foo + ')'
-
-
-if __name__ == '__main__':
-    raise AuxiliarFileError("Can't open file because it's an auxiliar file.")

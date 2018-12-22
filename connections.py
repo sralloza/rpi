@@ -40,11 +40,11 @@ class Connections:
             self.errores.append(something)
 
     @staticmethod
-    def forzar_notificacion(title, message, destinations=None):
-        return Connections.notificacion(title, message, destinations, force=True)
+    def force_notify(title, message, destinations=None):
+        return Connections.notify(title, message, destinations, force=True)
 
     @staticmethod
-    def notificacion(title, message, destinations=None, file=None, force=False):
+    def notify(title, message, destinations=None, file=None, force=False):
         # TODO: INSERT DOCSTRING
         # TODO: IMPROVE CODE
         # TODO: TRANSLATE INTO ENGLISH
@@ -53,100 +53,80 @@ class Connections:
         self.__init__()
 
         if file is None and force is False:
-            raise NeccessaryArgumentError(f"Debe especificar el parámetro 'file' para comprobar los permisos.")
+            raise NeccessaryArgumentError("The 'file' argument is needed in order to check permissions.")
 
         if destinations == 'broadcast' and file is None:
-            raise NeccessaryArgumentError("No se puede usar broadcast si no se especifica el parámetro 'file'.")
+            raise NeccessaryArgumentError("Broadcast can't be used without the 'file' argument.")
 
-        # Servicio
-        servicio = GestorServicios.get(file) if file is not None else GestorServicios.LOG
+        servicio = GestorServicios.get(file) if file is not None else GestorServicios.UNKNOWN
 
-        # Preparación del mapa de destinos
-        destinos = {x: False for x in Connections.gu}
-        if destinations is None:
-            destinations = 'all'
+        passports = {x: False for x in Connections.gu}
 
         if isinstance(destinations, str):
-            # Si el usuario destinations es 'all', se manda a todos los usuarios
-            if destinations == 'all':
-                for usuario in Connections.gu:
-                    destinos[usuario] = True
+            # Si el user destinations es 'broadcast', se manda a todos los usuarios afiliados al servicio.
+            if destinations == 'broadcast':
+                for username in Connections.gu:
+                    if servicio in username.servicios:
+                        passports[username] = True
 
-            # Si el usuario destinations es 'broadcast', se manda a todos los usuarios afiliados al servicio.
-            elif destinations == 'broadcast':
-                for usuario in Connections.gu:
-                    if servicio in usuario.servicios:
-                        destinos[usuario] = True
-
-                # Si el usuario destinations no está registrado, lanza excepción
-            elif destinations not in Connections.gu.usernames:
-                raise UnrecognisedUsernameError('Usuario no afiliado: ' + destinations)
-            else:
-                destinos[Connections.gu.get_by_username(destinations)] = True
+            passports[Connections.gu.get_by_username(destinations)] = True
 
         else:
-            if 'all' in destinations:
-                for afiliado in Connections.gu:
-                    destinos[afiliado] = True
-            else:
-                try:
-                    for persona in destinations:
-                        if persona not in Connections.gu.usernames:
-                            raise UnrecognisedUsernameError('Usuario no afiliado: ' + str(destinations))
-                        else:
-                            destinos[Connections.gu.get_by_username(persona)] = True
-                except TypeError:
-                    logger.critical('"destinations" debe ser str o iterable, no ' + type(destinations).__name__)
-                    raise TypeError('"destinations" debe ser str o iterable, no ' + type(destinations).__name__)
+            try:
+                for persona in destinations:
+                    passports[Connections.gu.get_by_username(persona)] = True
+            except TypeError:
+                logger.critical(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
+                raise TypeError(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
+
+        # Checking validations of usernames (check that each username is registered at the database)
+        for username in passports:
+            if username not in Connections.gu.usernames:
+                raise UnrecognisedUsernameError(f'Uknown username: {destinations!r}')
 
         threads = []
-        for usuario in Connections.gu:
-            if destinos[usuario] is False:
+        for user in Connections.gu:
+            if passports[user] is False:
                 continue
-            if servicio not in usuario.servicios and force is False:
-                logger.warning(
-                    f"El usuario '{usuario.username}' no está registrado en el servicio '{servicio.nombre}'")
+            if servicio not in user.servicios and force is False:
+                logger.warning(f'User {user.username!r} is not registered in the service {servicio.nombre!r}')
                 continue
 
-            logger.debug('Iniciando hilo de conexión de ' + usuario.username)
-            threads.append(
-                Thread(name=usuario.username, target=self._notificar, args=(usuario, title, message), daemon=True))
+            logger.debug(f'Starting connection thread of {user.username!r}')
+            threads.append(Thread(name=user.username, target=self._notify, args=(user, title, message), daemon=True))
             threads[-1].start()
 
         for thread in threads:
             thread.join()
 
-        logger.debug('Hilos de conexión finalizados')
-
-        report = {'value1': title, 'value2': message}
+        logger.debug('Connection threads finished')
 
         if len(self.errores) > 0:
-            report['destinations'] = self.errores
-            report['code'] = 404
-            logger.error('Errores en notificación: ' + str(report))
+            report = {'title': title, 'message': message, 'destinations': destinations, 'file': file, 'force': force}
+            logger.error(f'Notification errors: {report}')
             return False
         else:
             return True
 
-    def _notificar(self, usuario, title, message):
+    def _notify(self, user, title, message):
         # TODO: INCLUDE DOCSTRING
         # TODO: IMPROVE CODE
         # TODO: TRANSLATE INTO ENGLISH
 
         try:
-            if usuario.esta_activo is False:
-                logger.warning('[Usuario desactivado] ' + usuario.username)
+            if user.esta_activo is False:
+                logger.warning(f'BANNED USER: {user.username!r}')
                 return False
 
             if Connections.DISABLE is True:
-                logger.warning('[Notificaciones deshabilitadas] ' + usuario.username)
+                logger.warning(f'DISABLED NOTIFICATIONS - {user.username!r}')
                 return False
             else:
-                usuario.launcher.fire(title, message)
-                logger.debug('Enviada notificación a ' + usuario.username)
+                user.launcher.fire(title, message)
+                logger.debug(f'Sent notification to {user.username!r}')
                 return True
         except DownloaderError:
-            self.append_error(usuario)
+            self.append_error(user)
 
     @staticmethod
     def send_email(destinations, subject, message, files=None, is_file=False, origin='Rpi'):

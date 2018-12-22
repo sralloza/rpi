@@ -14,5 +14,5 @@ def operating_system():
 
 
 def opating_system_in_brackets():
-    """Devuelve '(W)' si se ejecuta en windows, o '(L)' si se ejecuta en Linux."""
+    """Returns the operating system icon between brakets."""
     return '(' + operating_system() + ')'
