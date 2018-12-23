@@ -4,8 +4,8 @@ import argparse
 import sys
 
 from . import __VERSION__ as VERSION, ADMIN_EMAIL
-from .conexiones import Connections
-from .gestores.gestor_usuarios import rpi_gu
+from .connections import Connections
+from .managers.user_manager import UserManager
 
 
 def report_error(error):
@@ -15,6 +15,8 @@ def report_error(error):
 def main():
     if len(sys.argv) <= 1:
         sys.argv.append('-h')
+
+    gu = UserManager.load()
 
     parser = argparse.ArgumentParser(description='Rpi', prog='rpi')
 
@@ -30,7 +32,7 @@ def main():
     notificar = subparser.add_parser('notificar')
     notificar.add_argument('titulo')
     notificar.add_argument('mensaje')
-    notificar.add_argument('destinos', nargs='+', choices=rpi_gu.usernames)
+    notificar.add_argument('destinos', nargs='+', choices=gu.usernames)
 
     email = subparser.add_parser('email')
     email.add_argument('destino')
@@ -47,24 +49,24 @@ def main():
 
     try:
         if opt['ver'] is False and opt['eliminar'] is None and opt['usernames'] is False:
-            print(rpi_gu.usernames)
+            print(gu.usernames)
             return
     except KeyError:
         pass
 
     if 'ver' in opt:
         if opt['ver'] is True:
-            print(rpi_gu)
+            print(gu)
             return
 
     if 'usernames' in opt:
         if opt['usernames'] is True:
-            print(rpi_gu.usernames)
+            print(gu.usernames)
             return
 
     if 'titulo' in opt:
         Connections.DISABLE = False
-        if Connections.notificacion(opt['titulo'], opt['mensaje'], opt['destinos'], force=True) is False:
+        if Connections.notify(opt['titulo'], opt['mensaje'], opt['destinos'], force=True) is False:
             print('Error en notificación')
         else:
             print('Notifiación enviada con éxito')

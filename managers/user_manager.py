@@ -10,8 +10,8 @@ from rpi.dns import RpiDns
 from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
 from rpi.launcher import IftttLauncher, NotifyRunLauncher
 from rpi.rpi_logging import Logger
-from .gestor_crontab import GestorCrontab
-from .gestor_servicios import GestorServicios, ServicioRaspberry
+from .crontab_manager import GestorCrontab
+from .service_manager import GestorServicios, ServicioRaspberry
 
 
 class Usuario:
@@ -52,7 +52,7 @@ class Usuario:
         return self.username
 
 
-class GestorUsuarios(list):
+class UserManager(list):
     """Clase para gestionar los usuarios."""
 
     def __init__(self):
@@ -125,4 +125,4 @@ class GestorUsuarios(list):
         raise UnrecognisedUsernameError('Usuario no reconocido: ' + str(username))
 
 
-rpi_gu = GestorUsuarios.load()
+rpi_gu = UserManager.load()

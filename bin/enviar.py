@@ -102,14 +102,16 @@ def _enviar_main(id_recurso=None, keys=False):
     asunto += descripcion
     p += asunto
     p += '</span></h2><p>&nbsp;</p>'
-    mail = Connections.send_email(destino, asunto, p, files=archivo, force_file_name=realfilename,
+
+    # TODO: ADD NEW WAY OF SENDING FILES VIA MAIL (WITH A DICT LIKE FILE:FILENAME)
+    mail = Connections.send_email(destino, asunto, p, files=archivo, force=realfilename,
                                   origin='Rpi-Sender')
     if mail is True:
-        notif = Connections.notificacion(
+        notif = Connections.notify(
             'Gestor de envíos', 'Petición aceptada:\n' + asunto, file=__file__)
         logger.debug('Gestor de envíos ' + opating_system_in_brackets() + ': Enviada "' + descripcion + '" a "' + destino + '"')
     else:
-        notif = Connections.notificacion(
+        notif = Connections.notify(
             'Gestor de envíos', 'Error al enviar "' + descripcion, file=__file__)
         logger.debug(
             'Gestor de envíos ' + opating_system_in_brackets() + ': Error al enviar "' + descripcion + '" a "' + destino + '"')

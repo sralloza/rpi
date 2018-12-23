@@ -1,141 +1,137 @@
 # -*- coding: utf-8 -*-
 
-# ERRORES
+# ERRORS
 
 
 class BaseError(Exception):
-    """Clase base de errores."""
+    """Base class for errors in the system."""
 
 
 class WrongCalledError(BaseError):
-    """Se ha usado un método, clase, o función de una manera errónea."""
+    """A method, class or function has been used wrongly."""
 
 
 class InvalidArgumentError(BaseError):
-    """Se ha pasado un argumento inválido."""
+    """An invalid argument has been passed."""
 
 
 class NeccessaryArgumentError(BaseError):
-    """Un argumento necesario no se ha pasado."""
+    """A neccessary argument is missing."""
 
 
 class UnrecognisedServiceError(BaseError):
-    """No se ha reconocido un servicio."""
+    """A service couldn't be identified."""
 
 
 class UnrecognisedUsernameError(BaseError):
-    """No se ha reconocido un nombre de usuario."""
+    """A username couldn't be identified."""
 
 
 class DnsError(BaseError):
-    """Error de DNS"""
+    """DNS error."""
 
 
 class InvalidLauncherError(BaseError):
-    """El launcher no está soportado"""
+    """The launcher is not supported."""
 
 
-class PasswordKeyError(BaseError):
-    """Clase base para errores de claves."""
+class InvalidLanguage(BaseError):
+    """The language is not valid."""
 
 
 class MailError(BaseError):
-    """Error con mail."""
+    """Mail error."""
 
 
-class MissingKeyError(PasswordKeyError):
-    """No se encuentra una clave."""
+class MissingKeyError(BaseError):
+    """A key can not be found."""
 
 
 class PlatformError(BaseError):
-    """No se puede ejecutar en esta plataforma."""
+    """Can not be executed in this platform."""
 
 
 class AuxiliarFileError(BaseError):
-    """El archivo no se puede ejecutar, sólo contiene código auxiliar."""
+    """The auxiliar file can not be executed, only imported."""
 
 
 class InvalidMonthError(BaseError):
-    """El mes insertado no es correcto."""
+    """Invalid month."""
 
 
 class InvalidDayError(BaseError):
-    """El día insertado no es correcto."""
+    """Invalid day."""
 
 
 class WrongLogType(BaseError):
-    """El tipo especificado no es correcto."""
+    """The log specified is not correct."""
 
 
 class UnknownError(BaseError):
-    """No se sabe qué ha podido pasar."""
-
-
-class ApiError(BaseError):
-    """Ha habido un error con una API."""
+    """The error is so catastrophic that can't be identified."""
 
 
 class DownloaderError(BaseError):
-    """Error al descargar."""
+    """Error while downloading."""
 
 
 class JobNotFoundError(BaseError):
-    """No se encuentra el job."""
+    """Job can't be found."""
 
 
 class ExistingJobError(BaseError):
-    """Existe el job."""
+    """The job does exist."""
 
 
 class UnableToSave(BaseError):
-    """No se puede guardar"""
+    """Cant be saved."""
 
 
 class ConfigNotFoundError(BaseError):
-    """Configuración no encontrada."""
+    """Configuration not found."""
 
 
 class EmptyConfigError(BaseError):
-    """No hay configuración que guardar."""
+    """There is no config to save."""
 
 
 class MissingOptionsError(BaseError):
-    """No se han especificado las opciones."""
+    """Options must be selected."""
 
 
 class InvalidOptionError(BaseError):
-    """La opción no es válida."""
+    """The option is not valid."""
 
 
 class SpreadsheetNotFoundError(BaseError):
-    """Hoja de cálculo no encontrada."""
+    """Sheet not found."""
 
 
 class SheetNotFoundError(BaseError):
-    """Hoja de cálculo no encontrada."""
+    """Sheet not found."""
 
 
 # WARNINGS
 
 class BaseWarning(Warning):
-    """Clase base para los warnings declarados."""
+    """Base class for warnings."""
 
 
 class TooLowAccuracy(BaseWarning):
-    """Se lanza si se ha encontrado la dirección DNS con menos de un 50% de precisión."""
+    """When finding DNS address, precision is lower than 0.5."""
 
 
 class ExistingMenuWarning(BaseWarning):
-    """Se lanza si se quiere almacenar un menú ya almacenado."""
+    """The menu already exists."""
 
 
 class NotEnoughSubjectsWarning(BaseWarning):
-    """No se han encontrado suficientes asignaturas."""
+    """Not enough subjects have been found."""
 
 
 class UnrecognisedServiceWarning(BaseWarning):
-    """No se ha reconocido un servicio."""
+    """A service couldnt be identified."""
 
 
 class UnexpectedBehaviourWarning(BaseWarning):
-    """No debería haberse dado esta situación, pero no se sabe si es crítica."""
+    """This is an expected situation, but its not critical."""

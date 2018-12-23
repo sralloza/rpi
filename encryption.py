@@ -1,6 +1,6 @@
 from cryptography.fernet import Fernet
 
-from rpi.gestores.gestor_config import GestorConfig
+from rpi.managers.config_manager import GestorConfig
 
 
 def encrypt(anything, key=None):

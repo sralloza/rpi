@@ -17,8 +17,9 @@ from .dns import RpiDns
 from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, DownloaderError, \
     SpreadsheetNotFoundError, SheetNotFoundError
-from .gestores.gestor_claves import GestorClaves
-from .gestores.gestor_usuarios import GestorServicios, GestorUsuarios
+from .managers.key_manager import KeyManager
+from .managers.service_manager import GestorServicios
+from .managers.user_manager import UserManager
 from .rpi_logging import Logger
 
 debug_lock = Lock()
@@ -27,7 +28,7 @@ logger = Logger.get(__file__, __name__)
 
 class Connections:
     """Manages every outgoing connection."""
-    gu = GestorUsuarios.load()
+    gu = UserManager.load()
     DISABLE = platform.system() == 'Windows'
 
     def __init__(self):
@@ -141,8 +142,8 @@ class Connections:
             else:
                 files = {files: None}
 
-        password = GestorClaves.get('mail_password')
-        username = GestorClaves.get('mail_username')
+        password = KeyManager.get('mail_password')
+        username = KeyManager.get('mail_username')
 
         msg = MIMEMultipart()
         msg['From'] = f"{origin} <{username}>"

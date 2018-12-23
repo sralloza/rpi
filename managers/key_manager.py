@@ -9,7 +9,7 @@ from rpi.rpi_logging import Logger
 logger = Logger.get(__file__, __name__)
 
 
-class GestorClaves(object):
+class KeyManager(object):
     """Gestiona las claves con las que trabajan los servicios."""
 
     def __init__(self):
@@ -22,7 +22,7 @@ class GestorClaves(object):
     def keys():
         """Devuelve los servicios registrados."""
 
-        self = object.__new__(GestorClaves)
+        self = object.__new__(KeyManager)
         self.__init__()
 
         return tuple(self.dict.keys())
@@ -37,7 +37,7 @@ class GestorClaves(object):
     def nueva(servicio, password):
         """Añade una nueva clave al servicio."""
 
-        self = object.__new__(GestorClaves)
+        self = object.__new__(KeyManager)
         self.__init__()
 
         self.dict[servicio] = password
@@ -47,7 +47,7 @@ class GestorClaves(object):
     def get(clave):
         """Devuelve una clave."""
 
-        self = object.__new__(GestorClaves)
+        self = object.__new__(KeyManager)
         self.__init__()
 
         logger.debug(f'Buscando clave "{clave}".')

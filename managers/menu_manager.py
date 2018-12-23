@@ -10,11 +10,11 @@ from typing import List
 
 from bs4 import BeautifulSoup as Soup
 
-from rpi.conexiones import Connections
+from rpi.connections import Connections
 from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import WrongCalledError, InvalidMonthError, InvalidDayError, DownloaderError
-from rpi.gestores.gestor_usuarios import rpi_gu
+from rpi.managers.user_manager import UserManager
 from rpi.launcher import BaseMinimalLauncher
 from rpi.rpi_logging import Logger
 
@@ -740,10 +740,11 @@ class GestorMenus(object):
     @staticmethod
     def notificar(mensaje, destinos_notificacion, mostrar='default'):
         titulo = 'Menús Resi'
+        gu = UserManager.load()
 
         if isinstance(destinos_notificacion, str):
             if destinos_notificacion.lower() == 'all':
-                destinos_notificacion = rpi_gu.usernames
+                destinos_notificacion = gu.usernames
 
         if isinstance(mensaje, Menu):
             mensaje_normal = mensaje.__str__(arg=mostrar)
@@ -753,23 +754,23 @@ class GestorMenus(object):
             mensaje_normal = mensaje
 
         if isinstance(destinos_notificacion, str):
-            usuario = rpi_gu.get_by_username(destinos_notificacion).username
+            usuario = gu.get_by_username(destinos_notificacion).username
             if isinstance(usuario.launcher, BaseMinimalLauncher):
-                Connections.notificacion(titulo, mensaje_minimal, destinations=usuario, file=__file__)
+                Connections.notify(titulo, mensaje_minimal, destinations=usuario, file=__file__)
             else:
-                Connections.notificacion(titulo, mensaje_normal, destinations=usuario, file=__file__)
+                Connections.notify(titulo, mensaje_normal, destinations=usuario, file=__file__)
         else:
             try:
                 usuarios_normales = []
                 usuarios_minimal = []
                 for nombre in destinos_notificacion:
-                    usuario = rpi_gu.get_by_username(nombre)
+                    usuario = gu.get_by_username(nombre)
                     if isinstance(usuario.launcher, BaseMinimalLauncher):
                         usuarios_minimal.append(usuario.username)
                     else:
                         usuarios_normales.append(usuario.username)
-                Connections.notificacion(titulo, mensaje_normal, destinations=usuarios_normales, file=__file__)
-                Connections.notificacion(titulo, mensaje_minimal, destinations=usuarios_minimal, file=__file__)
+                Connections.notify(titulo, mensaje_normal, destinations=usuarios_normales, file=__file__)
+                Connections.notify(titulo, mensaje_minimal, destinations=usuarios_minimal, file=__file__)
             except TypeError:
                 raise TypeError(
                     '"destinos_notificacion" debe ser str o iterable, no ' + type(destinos_notificacion).__name__)
