@@ -4,85 +4,85 @@ from rpi.dns import RpiDns
 from rpi.exceptions import ConfigNotFoundError, EmptyConfigError
 
 
-class GestorConfig(object):
+class ConfigManager(object):
     def __init__(self):
-        super(GestorConfig, self).__init__()
+        super(ConfigManager, self).__init__()
         self.path = RpiDns.get('textdb.config')
-        self.data = {}
-        self.cargar()
+        self.config = {}
+        self.load()
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        self.config[key] = value
 
     def __getitem__(self, item):
-        return self.data[item]
+        return self.config[item]
 
     def __delitem__(self, key):
-        del self.data[key]
+        del self.config[key]
 
     def __iter__(self):
-        return iter(self.data)
+        return iter(self.config)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.config)
 
     def __contains__(self, item):
-        return item in self.data
+        return item in self.config
 
-    def cargar(self):
+    def load(self):
         try:
             with open(self.path, 'rt', encoding='utf-8') as fh:
-                datos = fh.read()
+                data = fh.read()
         except FileNotFoundError:
-            raise FileNotFoundError(f'No existe el archivo de configuración ({self.path!r})')
+            raise FileNotFoundError(f'Config file does not exist ({self.path!r})')
 
-        for linea in datos.splitlines():
-            clave, *valor = linea.split('=')
+        for line in data.splitlines():
+            key, *value = line.split('=')
 
-            clave = clave.strip()
-            valor = '='.join(valor).strip()
+            key = key.strip()
+            value = '='.join(value).strip()
 
-            self[clave] = valor
+            self[key] = value
 
-    def guardar(self, force=False):
+    def save(self, force=False):
         if len(self) == 0 and force is False:
-            raise EmptyConfigError('No hay información que guardar')
+            raise EmptyConfigError('There are no configurations to save')
         with open(self.path, 'wt', encoding='utf-8') as fh:
-            for key, value in self.data.items():
+            for key, value in self.config.items():
                 fh.write(f"{key}={value}\n")
 
     @staticmethod
-    def get(configuracion):
-        self = GestorConfig.__new__(GestorConfig)
+    def get(config):
+        self = ConfigManager.__new__(ConfigManager)
         self.__init__()
 
-        if configuracion not in self:
-            raise ConfigNotFoundError(f'Configuración no encontrada: {configuracion}')
+        if config not in self:
+            raise ConfigNotFoundError(f'Configuration not found: {config!r}')
 
-        valor = self[configuracion]
+        valor = self[config]
 
         return valor
 
     @staticmethod
-    def set(configuracion, valor):
-        self = GestorConfig.__new__(GestorConfig)
+    def set(config, value):
+        self = ConfigManager.__new__(ConfigManager)
         self.__init__()
 
-        self[configuracion] = valor
+        self[config] = value
 
-        self.guardar()
+        self.save()
 
     @staticmethod
-    def delete(configuracion):
-        self = GestorConfig.__new__(GestorConfig)
+    def delete(config):
+        self = ConfigManager.__new__(ConfigManager)
         self.__init__()
 
-        del self[configuracion]
-        self.guardar(force=True)
+        del self[config]
+        self.save(force=True)
 
     @staticmethod
-    def listar():
-        self = GestorConfig.__new__(GestorConfig)
+    def list():
+        self = ConfigManager.__new__(ConfigManager)
         self.__init__()
 
-        return tuple(self.data.keys())
+        return tuple(self.config.keys())

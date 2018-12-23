@@ -1,6 +1,6 @@
 from cryptography.fernet import Fernet
 
-from rpi.managers.config_manager import GestorConfig
+from rpi.managers.config_manager import ConfigManager
 
 
 def encrypt(anything, key=None):
@@ -20,7 +20,7 @@ def decrypt(anything, key=None):
 
 def get_fernet(key=None):
     if key is None:
-        aes_key = GestorConfig.get('aes_key')
+        aes_key = ConfigManager.get('aes_key')
     else:
         aes_key = key
 
