@@ -10,7 +10,7 @@ from rpi.dns import RpiDns
 from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
 from rpi.launcher import IftttLauncher, NotifyRunLauncher
 from rpi.rpi_logging import Logger
-from .crontab_manager import GestorCrontab
+from .crontab_manager import CrontabManager
 from .service_manager import GestorServicios, ServicioRaspberry
 
 
@@ -38,11 +38,11 @@ class Usuario:
 
     def actualizar_cronitems(self):
         """Actualiza todas las tareas que ha creado el usuario."""
-        self.cronitems = GestorCrontab.listar_por_usuario(self)
+        self.cronitems = CrontabManager.list_by_user(self)
 
     def nuevo_proceso(self, comando, usuario, hora, minutos):
         """Crea una nueva tarea."""
-        GestorCrontab.nuevo(comando, usuario, hora, minutos)
+        CrontabManager.new(comando, usuario, hora, minutos)
         self.actualizar_cronitems()
 
     def __repr__(self):

@@ -13,6 +13,7 @@ from rpi.rpi_logging import Logger
 logger = Logger.get(__file__, __name__)
 
 
+# TODO: FIX THE ENTIRE FUNCTION
 def _enviar_main(id_recurso=None, keys=False):
     """Inicia el proceso de envío de una base de datos.
 

@@ -6,8 +6,8 @@ from rpi import operating_system
 from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
 
 
-class GestorCrontab(object):
-    """Interfaz con crontab."""
+class CrontabManager(object):
+    """Crontab interface"""
     BASE = '/usr/local/bin/python3 '
 
     def __init__(self):
@@ -20,52 +20,45 @@ class GestorCrontab(object):
         return iter(self.cron)
 
     @staticmethod
-    def nuevo(comando, usuario, hora, minutos):
-        """Crea una nueva tarea en crontab."""
-
-        self = GestorCrontab.__new__(GestorCrontab)
+    def new(command, user, hour, minutes):
+        self = CrontabManager.__new__(CrontabManager)
         self.__init__()
 
-        try:
-            username = usuario.username
-        except AttributeError:
-            username = usuario
-        new_job = self.cron.new(comando, comment=username)
-        new_job.hour.on(hora)
-        new_job.minutes.on(minutos)
+        username = CrontabManager.user_to_username(user)
 
-        contador = 0
+        new_job = self.cron.new(command, comment=username)
+        new_job.hour.on(hour)
+        new_job.minutes.on(minutes)
+
+        counter = 0
 
         for job in self.cron.find_comment(username):
-            if GestorCrontab.job_to_hash(job) == GestorCrontab.job_to_hash(new_job):
-                contador += 1
+            if CrontabManager.job_to_hash(job) == CrontabManager.job_to_hash(new_job):
+                counter += 1
 
-        if contador > 1:
-            raise ExistingJobError(f'Ya existe el trabajo: {new_job!r}')
+        if counter > 1:
+            raise ExistingJobError(f'Job already exists: {new_job!r}')
         self.cron.write()
 
     @staticmethod
-    def eliminar(anything):
-        """Alias para GestorCrontab.eliminar_por_hash()."""
-
-        self = GestorCrontab.__new__(GestorCrontab)
+    def delete(anything):
+        # TODO: UNDERSTAND WHAT THE FUCK DOES THIS DO
+        self = CrontabManager.__new__(CrontabManager)
         self.__init__()
 
         if isinstance(anything, CronItem):
-            hashcode = GestorCrontab.job_to_hash(anything)
+            hashcode = CrontabManager.job_to_hash(anything)
         elif isinstance(anything, int):
             hashcode = anything
         elif isinstance(anything, str):
             hashcode = int(anything)
         else:
             raise InvalidArgumentError(f'Tipo incorrecto ({type(anything).__name__!r})')
-        return self.eliminar_por_hash(hashcode)
+        return self.delete_by_hash(hashcode)
 
     @staticmethod
-    def eliminar_por_hash(hashcode):
-        """Elimina una tarea a partir de su hash generado por GestorCrontab.job_to_hash()."""
-
-        self = GestorCrontab.__new__(GestorCrontab)
+    def delete_by_hash(hashcode):
+        self = CrontabManager.__new__(CrontabManager)
         self.__init__()
 
         select = None
@@ -77,28 +70,27 @@ class GestorCrontab(object):
                 self.cron.remove(job)
 
         if select is None:
-            raise JobNotFoundError(
-                f'No se encuentra el trabajo (hash={hashcode!r})'
-            )
+            raise JobNotFoundError(f'Can not find job with hash={hashcode!r}')
 
         self.cron.write()
 
     @staticmethod
-    def listar_por_usuario(usuario):
-        """Devuelve una lista con todas las tareas de un usuario"""
-
-        self = GestorCrontab.__new__(GestorCrontab)
+    def list_by_user(user):
+        self = CrontabManager.__new__(CrontabManager)
         self.__init__()
 
-        try:
-            username = usuario.username
-        except AttributeError:
-            username = usuario
+        username = CrontabManager.user_to_username(user)
 
         return list(self.cron.find_comment(username))
 
     @staticmethod
     def job_to_hash(job: CronItem):
-        """Devuelve un valor hash a partir de una tarea"""
-
         return hash(str(vars(job)))
+
+    @staticmethod
+    def user_to_username(user):
+        try:
+            username = user.username
+        except AttributeError:
+            username = user
+        return username
