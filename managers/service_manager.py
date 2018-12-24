@@ -172,15 +172,6 @@ class ServiceManager(Enum):
         data=('campus_username', 'campus_password'),
         ispublic=True
     )
-    ENVIAR = RaspberryService(
-        name='ENVIAR',
-        command=Command(
-            template='{PYTHON} {PATH} {OPTIONS}',
-            path='/home/pi/scripts/enviar.py',
-        ),
-        options=(),
-        path='/home/pi/scripts/enviar.py',
-    )
 
     LOG = RaspberryService(
         name='LOG',
