@@ -28,7 +28,7 @@ logger = Logger.get(__file__, __name__)
 
 class Connections:
     """Manages every outgoing connection."""
-    gu = UserManager.load()
+    gu = UserManager()
     DISABLE = platform.system() == 'Windows'
 
     def __init__(self):
@@ -42,7 +42,11 @@ class Connections:
 
     @staticmethod
     def force_notify(title, message, destinations=None):
-        return Connections.notify(title, message, destinations, force=True)
+        backup = Connections.DISABLE
+        Connections.DISABLE = False
+        output = Connections.notify(title, message, destinations, force=True)
+        Connections.DISABLE = backup
+        return output
 
     @staticmethod
     def notify(title, message, destinations=None, file=None, force=False):
@@ -81,15 +85,15 @@ class Connections:
                 raise TypeError(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
 
         # Checking validations of usernames (check that each username is registered at the database)
-        for username in passports:
-            if username not in Connections.gu.usernames:
-                raise UnrecognisedUsernameError(f'Uknown username: {destinations!r}')
+        for user in passports:
+            if user.username not in Connections.gu.usernames:
+                raise UnrecognisedUsernameError(f'Uknown username: {user.username!r}')
 
         threads = []
         for user in Connections.gu:
             if passports[user] is False:
                 continue
-            if servicio not in user.servicios and force is False:
+            if servicio not in user.services and force is False:
                 logger.warning(f'User {user.username!r} is not registered in the service {servicio.nombre!r}')
                 continue
 
@@ -115,7 +119,7 @@ class Connections:
         # TODO: TRANSLATE INTO ENGLISH
 
         try:
-            if user.esta_activo is False:
+            if user.isactive is False:
                 logger.warning(f'BANNED USER: {user.username!r}')
                 return False
 

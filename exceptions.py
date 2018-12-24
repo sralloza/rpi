@@ -27,6 +27,10 @@ class UnrecognisedUsernameError(BaseError):
     """A username couldn't be identified."""
 
 
+class UserError(BaseError):
+    """User error."""
+
+
 class DnsError(BaseError):
     """DNS error."""
 
