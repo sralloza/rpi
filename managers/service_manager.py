@@ -9,9 +9,9 @@ from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarnin
 
 
 class Option(object):
-    def __init__(self, name, type, include=True):
+    def __init__(self, name, option_type, include=True):
         self.name = name
-        self.type = type
+        self.type = option_type
         self.include = include
 
 

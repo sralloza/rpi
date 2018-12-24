@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from rpi.dns import RpiDns
-from rpi.exceptions import ConfigNotFoundError, EmptyConfigError
+from rpi.exceptions import ConfigNotFoundError, EmptyConfigError, ConfigError
 
 
 class ConfigManager(object):
     def __init__(self):
-        super(ConfigManager, self).__init__()
         self.path = RpiDns.get('textdb.config')
         self.config = {}
         self.load()
@@ -45,6 +44,13 @@ class ConfigManager(object):
             self[key] = value
 
     def save(self, force=False):
+
+        other = ConfigManager.__new__(ConfigManager)
+        other.__init__()
+
+        if len(other) > len(self):
+            raise ConfigError('You can not save less configurations than the ones that are saved')
+
         if len(self) == 0 and force is False:
             raise EmptyConfigError('There are no configurations to save')
         with open(self.path, 'wt', encoding='utf-8') as fh:

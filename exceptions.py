@@ -87,11 +87,15 @@ class UnableToSave(BaseError):
     """Cant be saved."""
 
 
-class ConfigNotFoundError(BaseError):
+class ConfigError(BaseError):
+    """General configuration error."""
+
+
+class ConfigNotFoundError(ConfigError):
     """Configuration not found."""
 
 
-class EmptyConfigError(BaseError):
+class EmptyConfigError(ConfigError):
     """There is no config to save."""
 
 
