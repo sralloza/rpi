@@ -101,7 +101,7 @@ class TelegramLauncher(BaseExtendedLauncher):
 
     def to_json(self):
         self.update_status()
-        code = self.code
+        code = self.code or self.chat_id
         return {"type": "Telegram", "chat_id_or_code": code, "url": self.code}
 
     def update_status(self):
