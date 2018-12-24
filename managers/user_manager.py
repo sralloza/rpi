@@ -8,13 +8,13 @@ from json import JSONDecodeError
 
 from rpi.dns import RpiDns
 from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
-from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher
+from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, TelegramLauncher
 from rpi.rpi_logging import Logger
 from .crontab_manager import CrontabManager
 from .service_manager import ServiceManager, RaspberryService
 
 
-@dataclass(init=False)
+@dataclass(init=False, unsafe_hash=True)
 class User:
     """Represents a user."""
     username: str
@@ -22,7 +22,7 @@ class User:
     isactive: bool
     email: str
 
-    cronitems: list = field(init=False)
+    cronitems: list = field(init=False, hash=False)
     isbanned: bool = field(init=False, repr=False)
 
     def __init__(self, username, launcher, isactive, email, *services):
@@ -64,6 +64,10 @@ class UserManager(list):
     def __init__(self):
         super().__init__()
         self.path = None
+        self.con = None
+        self.cur = None
+
+        self.load()
 
     def __str__(self):
         return '\n'.join([repr(e) for e in self])
@@ -76,17 +80,27 @@ class UserManager(list):
     def emails(self):
         return tuple([x.email for x in self])
 
-    @classmethod
-    def load(cls):
+    def save_launcher(self, username):
+        for user in self:
+            if user.username == username:
+                self.con = sqlite3.connect(self.path)
+                self.cur = self.con.cursor()
+
+                data = (json.dumps(user.launcher.to_json()), user.username)
+                self.cur.execute('update usuarios_usuario set launcher=? where username=?', data)
+                self.con.commit()
+                self.con.close()
+                return True
+        return False
+
+    def load(self):
         """Carga todos los usuarios."""
-        self = cls.__new__(cls)
-        self.__init__()
 
         @dataclass
         class TempUser:
             username: str
             launcher: BaseLauncher
-            isbanned: bool
+            isactive: bool
             email: str
             services: tuple
 
@@ -108,7 +122,7 @@ class UserManager(list):
 
         for user in content:
             username = user.username
-            isbanned = user.isbanned
+            isbanned = user.isactive
             email = user.email
 
             services = ServiceManager.eval(user.services)
@@ -117,10 +131,12 @@ class UserManager(list):
             except JSONDecodeError:
                 continue
 
-            if launcher["tipo"] == 'IFTTT':
+            if launcher["type"] == 'IFTTT':
                 launcher = IftttLauncher(launcher["url"])
-            elif launcher["tipo"] == "NotifyRun":
+            elif launcher["type"] == "NotifyRun":
                 launcher = NotifyRunLauncher(launcher["url"])
+            elif launcher['type'] == "Telegram":
+                launcher = TelegramLauncher(launcher['chat_id_or_code'])
             else:
                 raise InvalidLauncherError()
 
@@ -134,6 +150,3 @@ class UserManager(list):
             if user.username == username:
                 return user
         raise UnrecognisedUsernameError(f'Unknown username: {username!r}')
-
-
-rpi_gu = UserManager.load()
