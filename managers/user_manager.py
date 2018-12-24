@@ -3,50 +3,56 @@
 import json
 import os
 import sqlite3
-from collections import namedtuple
+from dataclasses import dataclass, field
 from json import JSONDecodeError
 
 from rpi.dns import RpiDns
 from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
-from rpi.launcher import IftttLauncher, NotifyRunLauncher
+from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher
 from rpi.rpi_logging import Logger
 from .crontab_manager import CrontabManager
 from .service_manager import GestorServicios, ServicioRaspberry
 
 
-class Usuario:
-    """Representa un usuario."""
+@dataclass(init=False)
+class User:
+    """Represents a user."""
+    username: str
+    launcher: BaseLauncher
+    isactive: bool
+    email: str
 
-    def __init__(self, username, launcher, esta_activo, email, *servicios):
+    cronitems: list = field(init=False)
+    isbanned: bool = field(init=False, repr=False)
+
+    def __init__(self, username, launcher, isactive, email, *services):
         self.username = username
         self.launcher = launcher
         self.cronitems = None
-        self.esta_activo = bool(esta_activo)
+        self.isactive = bool(isactive)
+        self.isbanned = not self.isactive
         self.email = email
 
-        if isinstance(servicios, str):
-            self.servicios = (servicios,)
+        if isinstance(services, str):
+            self.services = (services,)
         else:
-            if isinstance(servicios, tuple) and len(servicios) == 1:
-                servicios = servicios[0]
-                if isinstance(servicios, ServicioRaspberry):
-                    self.servicios = (servicios,)
+            if isinstance(services, tuple) and len(services) == 1:
+                services = services[0]
+                if isinstance(services, ServicioRaspberry):
+                    self.services = (services,)
                 else:
-                    self.servicios = servicios
+                    self.services = services
 
-        self.actualizar_cronitems()
+        self.update_cronitems()
 
-    def actualizar_cronitems(self):
-        """Actualiza todas las tareas que ha creado el usuario."""
+    def update_cronitems(self):
+        """Updates all tasks created by user."""
         self.cronitems = CrontabManager.list_by_user(self)
 
-    def nuevo_proceso(self, comando, usuario, hora, minutos):
-        """Crea una nueva tarea."""
-        CrontabManager.new(comando, usuario, hora, minutos)
-        self.actualizar_cronitems()
-
-    def __repr__(self):
-        return f"Usuario({self.username!r}, {self.launcher!r}, {self.servicios!r})"
+    def new_task(self, command, user, hour, minutes):
+        """Creates a new task."""
+        CrontabManager.new(command, user, hour, minutes)
+        self.update_cronitems()
 
     def __str__(self):
         return self.username
@@ -58,20 +64,16 @@ class UserManager(list):
     def __init__(self):
         super().__init__()
         self.path = None
-        self.path2 = None
 
     def __str__(self):
-        elems = [repr(e) for e in self]
-        return '\n'.join(elems)
+        return '\n'.join([repr(e) for e in self])
 
     @property
     def usernames(self):
-        """Devuelve una tupla de los nombres de usuario."""
         return tuple([x.username for x in self])
 
     @property
     def emails(self):
-        """Devuelve una tupla con todos los emails."""
         return tuple([x.email for x in self])
 
     @classmethod
@@ -79,27 +81,37 @@ class UserManager(list):
         """Carga todos los usuarios."""
         self = cls.__new__(cls)
         self.__init__()
-        TempUser = namedtuple('TempUser', ['username', 'launcher', 'esta_activo', 'email', 'servicios'])
+
+        @dataclass
+        class TempUser:
+            username: str
+            launcher: BaseLauncher
+            isbanned: bool
+            email: str
+            services: tuple
 
         self.path = RpiDns.get('sqlite.django')
 
         if os.path.isfile(self.path) is False:
             logger = Logger.get(__file__, __name__)
-            logger.critical('Archivo de usuarios no encontrado')
-            raise FileNotFoundError('Archivo de usuarios no encontrado')
+            logger.critical('User database not found')
+            raise FileNotFoundError('User database not found')
 
         self.con = sqlite3.connect(self.path)
         self.cur = self.con.cursor()
         self.cur.execute("select username, launcher, is_active, email, servicios from 'usuarios_usuario'")
-        contenido = self.cur.fetchall()
-        contenido = [TempUser(*x) for x in contenido]
 
-        for user in contenido:
+        content = self.cur.fetchall()
+        self.con.close()
+
+        content = [TempUser(*x) for x in content]
+
+        for user in content:
             username = user.username
-            esta_activo = user.esta_activo
+            isbanned = user.isbanned
             email = user.email
 
-            servicios = GestorServicios.evaluar(user.servicios)
+            services = GestorServicios.evaluar(user.services)
             try:
                 launcher = json.loads(user.launcher)
             except JSONDecodeError:
@@ -112,17 +124,16 @@ class UserManager(list):
             else:
                 raise InvalidLauncherError()
 
-            self.append(Usuario(username, launcher, esta_activo, email, servicios))
+            self.append(User(username, launcher, isbanned, email, services))
 
         return self
 
     def get_by_username(self, username):
-        """A partir de un nombre de usuario devuelve el usuario entero."""
 
-        for usuario in self:
-            if usuario.username == username:
-                return usuario
-        raise UnrecognisedUsernameError('Usuario no reconocido: ' + str(username))
+        for user in self:
+            if user.username == username:
+                return user
+        raise UnrecognisedUsernameError(f'Unknown username: {username!r}')
 
 
 rpi_gu = UserManager.load()

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-
+# TODO: TRANSLATE HOLE FILE AND IMPROVE CODE
 import datetime
 import re
 import sqlite3
 import threading
 import time
+from dataclasses import dataclass, field
 from sqlite3 import IntegrityError
 from typing import List
 
@@ -13,9 +14,9 @@ from bs4 import BeautifulSoup as Soup
 from rpi.connections import Connections
 from rpi.dns import RpiDns
 from rpi.downloader import Downloader
-from rpi.exceptions import WrongCalledError, InvalidMonthError, InvalidDayError, DownloaderError
-from rpi.managers.user_manager import UserManager
+from rpi.exceptions import InvalidMonthError, InvalidDayError, DownloaderError
 from rpi.launcher import BaseMinimalLauncher
+from rpi.managers.user_manager import UserManager
 from rpi.rpi_logging import Logger
 
 MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -34,98 +35,97 @@ if int(time.strftime("%Y")) % 4 == 0:
     MESES_MAX[1] = 29
 
 
-def extender_fecha(anything):
-    """Cambia una fecha o un conjunto de fechas del tipo 01/01/2018 a DIA: 01 de Enero de 2018 (Lunes)-"""
+def extend_date(anything):
+    """Extends a date or a set of dates of 01/01/2018 type into DIA: 01 de Enero de 2018 (Lunes)."""
     output = []
     if isinstance(anything, str):
         try:
-            p = _extender_fecha(anything)
-            return p
+            date_extended = _extend_date(anything)
+            return date_extended
         except ValueError:
             return anything
     else:
         iterable = anything
 
-    for elemento in iterable:
-        p = _extender_fecha(elemento)
-        output.append(p)
+    for element in iterable:
+        date_extended = _extend_date(element)
+        output.append(date_extended)
 
     return output
 
 
-def _extender_fecha(elemento):
-    """Cambia una fecha del tipo 01/01/2018 a DIA: 01 de Enero de 2018 (Lunes)-"""
-    numeros = elemento.split('/')
-    dia, mes, ano = numeros
-    dia = int(dia)
-    mes = int(mes)
-    ano = int(ano)
-    f = datetime.datetime.strptime(f'{dia}-{mes}-{ano}', '%d-%m-%Y').strftime('%A').upper()
-    f = TDIAS[EDIAS.index(f)]
-    p = f'DÍA: {dia:02d} DE {MESES[mes - 1].upper()} DE {ano:04d} ({f.upper()})'
-    return p
+def _extend_date(date):
+    """Extends a date of 01/01/2018 type into DIA: 01 de Enero de 2018 (Lunes)."""
+
+    day, month, year = [int(x) for x in date.split('/')]
+
+    date = datetime.datetime.strptime(f'{day}-{month}-{year}', '%d-%m-%Y').strftime('%A').upper()
+    date = TDIAS[EDIAS.index(date)]
+    string = f'DÍA: {day:02d} DE {MESES[month - 1].upper()} DE {year:04d} ({date.upper()})'
+    return string
 
 
-def fecha():
-    """Devuelve el día, mes, y año actual. Está centralizado para poder editarlo en un futuro con rapidez."""
-    p = GestorMenus.hoy()
-    # return 5,6,18
+def get_date():
+    """Returns the current day, month, and year."""
+    p = datetime.date.today()
     return p.day, p.month, p.year
 
 
-class GestorBaseDatos:
+class MenusDatabaseManager:
     """Gestor de la base de datos de menús de la Residencia Santiago."""
 
     def __init__(self):
-        logger.debug('inicializando gestor de base de datos')
+        logger.debug('Starting database manager')
         self.con = sqlite3.connect(RpiDns.get('sqlite.menus_resi'))
         self.cur = self.con.cursor()
+
         self.cur.execute("""CREATE TABLE IF NOT EXISTS "menus" (
                          id INTEGER PRIMARY KEY NOT NULL,
-                         procedencia VARCHAR NOT NULL,
-                         dia_mes INTEGER NOT NULL,
-                         mes INTEGER NOT NULL,
-                         ano INTEGER NOT NULL,
-                         dia_semana VARCHAR,
-                         comida1 VARCHAR,
-                         comida2 VARCHAR,
-                         cena1 VARCHAR,
-                         cena2 VARCHAR)""")
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS "enlaces" (
-                        'fecha_hora' VARCHAR NOT NULL,
-                        'enlace' VARCHAR PRIMARY KEY NOT NULL                        
+                         origin VARCHAR NOT NULL,
+                         day_month INTEGER NOT NULL,
+                         month INTEGER NOT NULL,
+                         year INTEGER NOT NULL,
+                         day_week VARCHAR,
+                         lunch1 VARCHAR,
+                         lunch2 VARCHAR,
+                         dinner1 VARCHAR,
+                         dinner2 VARCHAR)""")
+
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS "links" (
+                        'datetime' VARCHAR NOT NULL,
+                        'link' VARCHAR PRIMARY KEY NOT NULL                        
                         )""")
         self.con.commit()
 
     def __contains__(self, item):
         if isinstance(item, str) is False:
-            raise TypeError(f"Sólo se aceptan links (str).")
+            raise TypeError('Only links are accepted (str).')
 
-        return item in self.extraer_enlaces()
+        return item in self.extract_links()
 
-    # ------   OPERACIONES CON ENLACES   ------
-    def guardar_enlace(self, enlace):
-        """Guarda un enlace web en la base de datos junto a la fecha y hora actual."""
+    # ------   OPERATIONS WITH LINKS   ------
+    def save_link(self, link):
+        """Saves a link in the database with the current datetime."""
         dia = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
-        datos = (dia, enlace)
+        data_pack = (dia, link)
 
         try:
-            self.cur.execute('INSERT INTO "enlaces" VALUES(?,?)', datos)
+            self.cur.execute('INSERT INTO "links" VALUES(?,?)', data_pack)
         except IntegrityError:
             return False
         return True
 
-    def extraer_enlaces(self):
-        self.cur.execute("SELECT enlace FROM enlaces")
-        data = [x[0] for x in self.cur.fetchall()]
-        return data
+    def extract_links(self):
+        self.cur.execute("SELECT link FROM links")
+        links = [x[0] for x in self.cur.fetchall()]
+        return links
 
-    # ------   OPERACIONES CON MENÚS   ------
-    def guardar_menu(self, menu):
-        """Guarda el menú de un día en la base de datos."""
-        mes = MESES.index(menu.mes) + 1
+    # ------   OPERATIONS WITH MENUS   ------
+    def save_menu(self, menu):
+        """Saves a menu in the database."""
         datos = (
-            menu.id, menu.procedencia, menu.dia_mes, mes, menu.ano, menu.dia_semana, menu.comida_p1, menu.comida_p2,
+            menu.id, menu.origin, menu.month_day, menu.month_as_number, menu.year, menu.dia_semana, menu.comida_p1,
+            menu.comida_p2,
             menu.cena_p1, menu.cena_p2)
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
@@ -133,81 +133,77 @@ class GestorBaseDatos:
             return False
         return True
 
-    def guardar_cambios(self):
-        """Guarda todos los cambios en la base de datos."""
+    def save_changes(self):
+        """Saves all changes in the databases."""
         self.con.commit()
 
-    def extraer_menus(self):
-        """Extrae todos los datos de la base de datos."""
+    def extract_menus(self):
+        """Extract all data from the database."""
+        # todo: this method should return a list of Menus, not a list of chaos data.
         self.cur.execute('SELECT * FROM "menus"')
         return self.cur.fetchall()
 
-    def cerrar(self):
-        """Guarda cambios y cierra la base de datos."""
+    def close(self):
+        """Saves changes and closes the database connection."""
         self.con.commit()
         self.con.close()
         del self.con
         del self.cur
 
 
+@dataclass
 class Menu:
-    """Representa una comida de un día."""
+    """Represents the different meals of a determined day."""
+    day: int
+    month: int
+    year: int
 
-    def __new__(cls, dia_mes, mes, ano, **kwargs):
-        self = object.__new__(cls)
+    origin: str = 'auto'
+    day_of_week_as_str: str = None
+    launch1: str = None
+    launch2: str = None
+    dinner1: str = None
+    dinner2: str = None
 
-        self.mes_num = None
-        self.dia_mes = dia_mes
-        self.mes = mes
-        self.ano = ano
-        self.procedencia = kwargs.pop('procedencia', 'auto')
+    month_as_str: str = field(init=False)
 
-        if type(self.mes) == int:
-            if not 1 <= mes <= 12:
-                raise InvalidMonthError(f"{self.mes} is not a valid month [1-12]")
-            self.mes_num = self.mes
-            self.mes = MESES[self.mes - 1]
-        else:
-            self.mes_num = MESES.index(self.mes) + 1
+    def __post_init__(self):
 
-        self.dia_semana = kwargs.pop("dia_semana", None)
-        self.comida_p1 = kwargs.pop("comida_p1", None)
-        self.comida_p2 = kwargs.pop("comida_p2", None)
-        self.cena_p1 = kwargs.pop("cena_p1", None)
-        self.cena_p2 = kwargs.pop("cena_p2", None)
+        if not 1 <= self.month <= 12:
+            raise InvalidMonthError(f"{self.month} is not a valid month [1-12]")
 
-        if self.dia_semana is None:
-            foo = datetime.datetime(self.ano, self.mes_num, self.dia_mes).strftime('%A').upper()
-            self.dia_semana = TDIAS[EDIAS.index(foo)].capitalize()
+        self.month_as_str = MESES[self.month - 1]
 
-        return self
+        if self.day_of_week_as_str is None:
+            foo = datetime.datetime(self.year, self.month, self.day).strftime('%A').upper()
+            self.day_of_week_as_str = TDIAS[EDIAS.index(foo)].capitalize()
 
     @property
     def id(self):
-        """Devuelve la id de un menú, formado por el año, el mes y el día del mes en orden."""
-        return int(f'{self.ano:04d}{self.mes_num:02d}{self.dia_mes:02d}')
+        """Returns the id of a menu, formed by year, month and day."""
+        return int(f'{self.year:04d}{self.month:02d}{self.day:02d}')
 
     @property
     def date(self):
-        """Devuelve la fecha del menú en forma de instancia de datetime.date."""
-        return datetime.date(self.ano, self.mes_num, self.dia_mes)
+        """Returns the date of the menu as an instance of datetiem.date"""
+        return datetime.date(self.year, self.month, self.day)
 
     @staticmethod
-    def gen_id(dia_mes, mes, ano):
+    def generate_id(dia_mes, mes, ano):
         """Genera la id de un menú."""
         return int(f'{ano:04d}{mes:02d}{dia_mes:02d}')
 
     def __str__(self, arg='default', html=False, minimal=False):
 
         if minimal is True and arg == 'default':
-            logger.warning('Se envía demasiada información (minimal=True)')
+            logger.warning('Too much information (minimal=True, arg=\'default\')')
 
         o = ''
         if html is True:
             o += '<b>'
         if minimal is False:
             o += "{} de {} de {} ({}):".format(
-                self.dia_mes, self.mes, self.ano, self.dia_semana)
+                self.day, self.month, self.year, self.day_of_week_as_str)
         if html is True:
             o += '</b>'
 
@@ -215,88 +211,84 @@ class Menu:
             o += '\n'
 
         if arg == 'comida' or arg == 'default':
-            if self.comida_p1 is not None:
-                o += f'Comida: {self.comida_p1}'
-                if self.comida_p2 is not None:
-                    o += f' y {self.comida_p2}'
+            if self.launch1 is not None:
+                o += f'Comida: {self.launch1}'
+                if self.launch2 is not None:
+                    o += f' y {self.launch2}'
 
         if arg == 'default':
             o += '\n'
 
         if arg == 'cena' or arg == 'default':
-            if self.cena_p1 is not None:
-                o += f'Cena: {self.cena_p1}'
-                if self.cena_p2 is not None:
-                    o += f' y {self.cena_p2}'
+            if self.dinner1 is not None:
+                o += f'Cena: {self.dinner1}'
+                if self.dinner2 is not None:
+                    o += f' y {self.dinner2}'
 
         return o
 
-    def __repr__(self):
-        o = []
-        if self.dia_mes:
-            o.append(f"{repr(self.dia_mes)}")
-        if self.mes:
-            o.append(f"{repr(self.mes)}")
-        if self.ano:
-            o.append(f"{repr(self.ano)}")
-        if self.dia_semana:
-            o.append(f"dia_semana='{self.dia_semana}'")
-        if self.comida_p1:
-            o.append(f"comida_p1='{self.comida_p1}'")
-        if self.comida_p2:
-            o.append(f"comida_p2='{self.comida_p2}'")
-        if self.cena_p1:
-            o.append(f"cena_p1='{self.cena_p1}'")
-        if self.cena_p2:
-            o.append(f"cena_p2='{self.cena_p2}'")
-        return "Menu(" + ", ".join(o) + ')'
+    # def __repr__(self):
+    #     o = []
+    #     if self.day:
+    #         o.append(f"{repr(self.day)}")
+    #     if self.month:
+    #         o.append(f"{repr(self.month)}")
+    #     if self.year:
+    #         o.append(f"{repr(self.year)}")
+    #     if self.day_of_week_as_str:
+    #         o.append(f"day_of_week_as_str='{self.day_of_week_as_str}'")
+    #     if self.launch1:
+    #         o.append(f"launch1='{self.launch1}'")
+    #     if self.launch2:
+    #         o.append(f"launch2='{self.launch2}'")
+    #     if self.dinner1:
+    #         o.append(f"dinner1='{self.dinner1}'")
+    #     if self.dinner2:
+    #         o.append(f"dinner2='{self.dinner2}'")
+    #     return "Menu(" + ", ".join(o) + ')'
 
-    def __lt__(self, other):
-        iself = None
-        iother = None
-        for i in range(len(MESES)):
-            if MESES[i] == self.mes:
-                iself = i
+    # def __lt__(self, other):
+    #     iself = None
+    #     iother = None
+    #     for i in range(len(MESES)):
+    #         if MESES[i] == self.month:
+    #             iself = i
+    #
+    #     for i in range(len(MESES)):
+    #         if MESES[i] == other.month:
+    #             iother = i
+    #
+    #     if iself is None:
+    #         raise InvalidMonthError("{} is not a month".format(self.month))
+    #     if iother is None:
+    #         raise InvalidMonthError("{} is not a month".format(other.month))
+    #
+    #     if iself != iother:
+    #         return iself < iother
+    #     else:
+    #         return self.day < other.dia_mes
 
-        for i in range(len(MESES)):
-            if MESES[i] == other.mes:
-                iother = i
-
-        if iself is None:
-            raise InvalidMonthError("{} is not a month".format(self.mes))
-        if iother is None:
-            raise InvalidMonthError("{} is not a month".format(other.month))
-
-        if iself != iother:
-            return iself < iother
-        else:
-            return self.dia_mes < other.dia_mes
-
-    def __ge__(self, other):
-        return self.date >= other.date
+    # def __ge__(self, other):
+    #     return self.date >= other.date
 
 
-class GestorMenus(object):
-    """Representa una lista de menús."""
+class MenusManager(object):
+    """Manages a list of menus."""
 
-    def __init__(self, **kwargs):
-        logger.debug('inicializando gestor de menús')
-        _autocalled = kwargs.pop('_autocalled', None)
+    def __init__(self):
+        logger.debug('Starting menus manager')
 
-        if _autocalled is None:
-            raise WrongCalledError("Can't create GestorMenus object. "
-                                   "Use classmethod load() instead")
-        self.lista = []
-        self._opcodes = []
-        self._downloader = Downloader()
-        self.gestor_base_datos = GestorBaseDatos()
+        self.list = []
+        self.opcodes = []
+        self.downloader = Downloader()
+        self.database_manager = MenusDatabaseManager()
 
-        # Patrones:
-        # 1. Detecta "DÍA: 28 DE JUNIO DE 2018 (JUEVES)".
-        # 2. Detecta "28/06/2018".
-        # 3. Detecta "27. junio 2018" (en desuso).
-        # 4. Detecta cuando "1ER PLATO" se separa de la comida en sí (o el 2º).
-        # 5. Detecta cuando en la cena no hay platos, y coge hasta el postre.
+        # Patterns:
+        # 1. Detects "DÍA: 28 DE JUNIO DE 2018 (JUEVES)".
+        # 2. Detects "28/06/2018".
+        # 3. Detects "27. junio 2018" (unused).
+        # 4. Detects when "1ER PLATO" is splitted from the dinner itself (or the 2nd) [I dont understand this...]
+        # 5. Detects when there are no dinner plates, and takes until dessert.
 
         self.pattern1 = re.compile(r'DÍA:\s\d{2}\sDE\s[a-zA-Z]{4,10}\sDE\s\d{4}\s\(\w{5,9}\)', re.IGNORECASE)
         self.pattern2 = re.compile(r'\d{2}/\d{2}/\d{4}', re.IGNORECASE)
@@ -306,108 +298,98 @@ class GestorMenus(object):
 
         self.opcodes_lock = threading.Lock()
         self.sqlite_lock = threading.Lock()
-        self.enlaces_a_guardar = []
+        self.links_to_save = []
 
     def __contains__(self, item):
-        lista = (x.id for x in self)
         if isinstance(item, int):
-            return item in lista
+            return item in (x.id for x in self)
         else:
-            raise TypeError('Las IDs deben ser números enteros')
+            raise TypeError('ID must be an integer')
 
     def __iter__(self):
-        return iter(self.lista)
+        return iter(self.list)
 
-    @staticmethod
-    def hoy():
-        """Devuelve la fecha actual en forma de instancia de datetime.date."""
-        return datetime.date.today()
+    def load_from_database(self):
 
-    def cargar_desde_base_datos(self):
-        """Extrae todos los datos de la base de datos y los procesa."""
+        logger.debug('Loading menus from database')
+        menus = self.database_manager.extract_menus()
+        for row in menus:
+            _, _, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
+            menu = Menu(
+                day=day, month=month, year=year, day_of_week_as_str=day_of_wee_as_str,
+                launch1=launch1, launch2=launch2, dinner1=dinner1, dinner2=dinner2
+            )
+            self.list.append(menu)
 
-        logger.debug('Cargando desde base de datos')
-        datos = self.gestor_base_datos.extraer_menus()
-        for fila in datos:
-            _, _, dia_mes, mes, ano, dia_semana, comida_p1, comida_p2, cena_p1, cena_p2 = fila
-            menu = Menu(dia_mes, mes, ano, dia_semana=dia_semana, comida_p1=comida_p1, comida_p2=comida_p2,
-                        cena_p1=cena_p1, cena_p2=cena_p2)
-            self.lista.append(menu)
-
-    def guardar_a_base_datos(self):
-        """Guarda todos los menús en la base de datos."""
-        logger.debug('Guardando a base de datos')
+    def save_to_database(self):
+        logger.debug('Saving to database')
         i = 0
         for menu in self:
-            out = self.gestor_base_datos.guardar_menu(menu)
+            out = self.database_manager.save_menu(menu)
             if out:
                 i += 1
-        self.gestor_base_datos.guardar_cambios()
+        self.database_manager.save_changes()
         return i
 
     def sort(self, **kwargs):
-        """Ordena la lista de menús por fecha."""
-        self.lista.sort(**kwargs)
+        self.list.sort(**kwargs)
 
-    def update(self, dia_mes, mes, ano, **kwargs):
-        """Busca un menú y actualiza su información."""
-        posibles_dias = [x for x in self.lista if x.dia_mes == dia_mes]
+    def update(self, day, month, year, **kwargs):
+        possible_days = [x for x in self.list if x.dia_mes == day]
 
-        for x in posibles_dias:
-            if x.mes == mes and x.ano == ano:
-                index = self.lista.index(x)
+        for x in possible_days:
+            if x.mes == month and x.ano == year:
+                index = self.list.index(x)
 
-                if "dia_semana" in kwargs:
-                    x.dia_semana = kwargs.pop("dia_semana")
-                if "comida_p1" in kwargs:
-                    x.comida_p1 = kwargs.pop("comida_p1")
-                if "comida_p2" in kwargs:
-                    x.comida_p2 = kwargs.pop("comida_p2")
-                if "cena_p1" in kwargs:
-                    x.cena_p1 = kwargs.pop("cena_p1")
-                if "cena_p2" in kwargs:
-                    x.cena_p2 = kwargs.pop("cena_p2")
-                self.lista[index] = x
+                if "day_of_week_as_str" in kwargs:
+                    x.dia_semana = kwargs.pop("day_of_week_as_str")
+                if "launch1" in kwargs:
+                    x.comida_p1 = kwargs.pop("launch1")
+                if "launch2" in kwargs:
+                    x.comida_p2 = kwargs.pop("launch2")
+                if "dinner1" in kwargs:
+                    x.cena_p1 = kwargs.pop("dinner1")
+                if "dinner2" in kwargs:
+                    x.cena_p2 = kwargs.pop("dinner2")
+                self.list[index] = x
                 break
         else:
-            menu = Menu(dia_mes, mes, ano)
+            menu = Menu(day, month, year)
 
-            if "dia_semana" in kwargs:
-                menu.dia_semana = kwargs.pop("dia_semana")
-            if "comida_p1" in kwargs:
-                menu.comida_p1 = kwargs.pop("comida_p1")
-            if "comida_p2" in kwargs:
-                menu.comida_p2 = kwargs.pop("comida_p2")
-            if "cena_p1" in kwargs:
-                menu.cena_p1 = kwargs.pop("cena_p1")
-            if "cena_p2" in kwargs:
-                menu.cena_p2 = kwargs.pop("cena_p2")
-            self.lista.append(menu)
+            if "day_of_week_as_str" in kwargs:
+                menu.day_of_week_as_str = kwargs.pop("day_of_week_as_str")
+            if "launch1" in kwargs:
+                menu.launch1 = kwargs.pop("launch1")
+            if "launch2" in kwargs:
+                menu.launch2 = kwargs.pop("launch2")
+            if "dinner1" in kwargs:
+                menu.dinner1 = kwargs.pop("dinner1")
+            if "dinner2" in kwargs:
+                menu.dinner2 = kwargs.pop("dinner2")
+            self.list.append(menu)
 
     @classmethod
     def load(cls, url):
-        """Crea y devuelve un objeto con todos los menús que encuentra."""
-
         self = object.__new__(cls)
-        self.__init__(_autocalled=True)
-        self.cargar_desde_base_datos()
+        self.__init__()
+        self.load_from_database()
 
-        today_dia, today_mes, ano = fecha()
+        current_day, current_month, current_year = get_date()
 
-        id_hoy = Menu.gen_id(today_dia, today_mes, ano)
+        current_id = Menu.generate_id(current_day, current_month, current_year)
 
-        if id_hoy in self:
+        if current_id in self:
             return self
-        self.descargar_y_procesar_web(url)
-        self.guardar_a_base_datos()
+        self.download_and_process_web(url)
+        self.save_to_database()
 
         return self
 
     @staticmethod
     def load_csv(csvpath):
-        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;comida_p1;comida_p2...'"""
-        self = object.__new__(GestorMenus)
-        self.__init__(_autocalled=True)
+        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;launch1;launch2...'"""
+        self = object.__new__(MenusManager)
+        self.__init__()
         with open(csvpath, encoding='utf-8') as f:
             contenido = f.read().splitlines()
 
@@ -421,7 +403,7 @@ class GestorMenus(object):
 
         for fila in contenido:
             copia_fila = []
-            if 'dia_mes' in fila:
+            if 'day' in fila:
                 continue
             for elemento in fila:
                 elemento = elemento.title()
@@ -438,19 +420,19 @@ class GestorMenus(object):
 
         for fila in contenido:
             logger.debug('Añadiendo menú manual: ' + str(fila))
-            self.lista.append(Menu(fila[0], fila[1], fila[2], comida_p1=fila[3], comida_p2=fila[4],
-                                   cena_p1=fila[5], cena_p2=fila[6], procedencia='manual'))
+            self.list.append(Menu(fila[0], fila[1], fila[2], launch1=fila[3], launch2=fila[4],
+                                  dinner1=fila[5], dinner2=fila[6], origin='manual'))
 
-        guardado = self.guardar_a_base_datos()
+        guardado = self.save_to_database()
         logger.debug(f'Guardados {guardado} registros en la base de datos')
         return guardado
 
-    def descargar_y_procesar_web(self, url):
+    def download_and_process_web(self, url):
         """Descarga y procesa la página web."""
-        opcodes = self.opcodes(url)
+        opcodes = self.generate_opcodes(url)
         if opcodes == -1:
             return -1
-        lista = self.procesar_opcodes()
+        lista = self.process_opcodes()
 
         cont1 = ['a', 'al', 'ante', 'bajo', 'con', 'contra', 'de', 'del',
                  'desde', 'durante', 'en', 'hacia', 'hasta', 'mediante', 'o',
@@ -459,8 +441,8 @@ class GestorMenus(object):
         titled = [' ' + x.title() + ' ' for x in cont1]
 
         for e in lista:
-            ano = int(e['ano'])
-            mes = MESES[e['mes'] - 1]
+            ano = int(e['year'])
+            mes = MESES[e['month_as_str'] - 1]
             dia = int(e['dia'])
             code = e['code']
             value = e['value']
@@ -489,11 +471,11 @@ class GestorMenus(object):
 
         return self
 
-    def opcodes(self, url):
+    def generate_opcodes(self, url):
         """Descarga la web de la residencia y crea los opcodes."""
 
         try:
-            html = self._downloader.get(url)
+            html = self.downloader.get(url)
         except DownloaderError:
             return -1
 
@@ -509,7 +491,7 @@ class GestorMenus(object):
         hilos = []
         i = 1
         for url in urls:
-            if url in self.gestor_base_datos:
+            if url in self.database_manager:
                 continue
             hilo = threading.Thread(name=str(i), target=self.procesar_url_menus, args=(url,))
             hilo.start()
@@ -519,23 +501,23 @@ class GestorMenus(object):
         for hilo in hilos:
             hilo.join()
 
-        for enlace in self.enlaces_a_guardar:
-            self.gestor_base_datos.guardar_enlace(enlace)
+        for enlace in self.links_to_save:
+            self.database_manager.save_link(enlace)
 
     def append_to_opcodes(self, anything):
         with self.opcodes_lock:
-            self._opcodes.append(anything)
+            self.opcodes.append(anything)
 
     def procesar_url_menus(self, url):
 
         try:
-            html = self._downloader.get(url)
+            html = self.downloader.get(url)
         except DownloaderError:
             logger.error('Skipped: ' + url)
             return
 
         with self.sqlite_lock:
-            self.enlaces_a_guardar.append(url)
+            self.links_to_save.append(url)
         sopa = Soup(html.text, "html.parser")
 
         resultado = sopa.find('article', {'class': 'j-blog'})
@@ -563,7 +545,7 @@ class GestorMenus(object):
         total = ' '.join(textos)
         matches1 = self.pattern1.findall(total)
         matches2 = self.pattern2.findall(total)
-        matches = matches1 + extender_fecha(matches2)
+        matches = matches1 + extend_date(matches2)
 
         data = dict()
         data['comida'] = False
@@ -588,7 +570,7 @@ class GestorMenus(object):
                 continue
 
             if self.pattern2.match(elem):
-                elem = extender_fecha(elem)
+                elem = extend_date(elem)
 
             if elem.count("DÍA:"):
                 for match in matches:
@@ -677,11 +659,11 @@ class GestorMenus(object):
 
         return
 
-    def procesar_opcodes(self) -> List[dict]:
-        """Transforma una lista del tipo [OPCODE] [VALOR] en una lista con la información de cada opcode extraída en
+    def process_opcodes(self) -> List[dict]:
+        """Transforma una list del tipo [OPCODE] [VALOR] en una list con la información de cada opcode extraída en
         forma de diccionario."""
         salida = []
-        for line in self._opcodes:
+        for line in self.opcodes:
             d = {}
             opcode = line[:10]
             value = line[11:].title()
@@ -694,8 +676,8 @@ class GestorMenus(object):
             if code == 'xx':
                 value = value.capitalize()
 
-            d['ano'] = ano
-            d['mes'] = mes
+            d['year'] = ano
+            d['month_as_str'] = mes
             d['dia'] = dia
             d['code'] = code
             d['value'] = value
@@ -703,74 +685,53 @@ class GestorMenus(object):
 
         return salida
 
-    def to_txt(self):
-        """Guarda los menús en un txt en el escritorio."""
-        try:
-            with open('D:/Sistema/Desktop/Menus.txt', 'w') as f:
-                for menu in self:
-                    f.write(str(menu))
-                    f.write('\n\n')
-        except FileNotFoundError:
-            pass
-
-    def semana_to_txt(self):
-        """Guarda los menús de una semana en un txt."""
-        with open('menus.txt', 'w', encoding='utf-8') as f:
-            hoy = self.hoy()
-            nivel = hoy - datetime.timedelta(days=7)
-            for menu in self:
-                if hoy >= menu.date >= nivel:
-                    f.write(str(menu))
-                    f.write('\n\n')
-
-    def semana_to_string(self, hoy):
-        """Genera un str con los menús de una semana."""
+    def week_to_str(self, today):
         p = ''
-        contador = 0
-        nivel = hoy - datetime.timedelta(days=7)
+        counter = 0
+        level = today - datetime.timedelta(days=7)
         for menu in self:
-            if hoy >= menu.date >= nivel:
-                contador += 1
+            if today >= menu.date >= level:
+                counter += 1
                 p += menu.__str__(html=True)
                 p += '\n\n'
-        if contador == 0:
+        if counter == 0:
             return False
         return p
 
     @staticmethod
-    def notificar(mensaje, destinos_notificacion, mostrar='default'):
-        titulo = 'Menús Resi'
+    def notify(message, destinations, show='default'):
+        title = 'Menús Resi'
         gu = UserManager.load()
 
-        if isinstance(destinos_notificacion, str):
-            if destinos_notificacion.lower() == 'all':
-                destinos_notificacion = gu.usernames
+        if isinstance(destinations, str):
+            if destinations.lower() == 'all':
+                destinations = gu.usernames
 
-        if isinstance(mensaje, Menu):
-            mensaje_normal = mensaje.__str__(arg=mostrar)
-            mensaje_minimal = mensaje.__str__(arg=mostrar, minimal=True)
+        if isinstance(message, Menu):
+            mensaje_normal = message.__str__(arg=show)
+            mensaje_minimal = message.__str__(arg=show, minimal=True)
         else:
-            mensaje_minimal = mensaje
-            mensaje_normal = mensaje
+            mensaje_minimal = message
+            mensaje_normal = message
 
-        if isinstance(destinos_notificacion, str):
-            usuario = gu.get_by_username(destinos_notificacion).username
+        if isinstance(destinations, str):
+            usuario = gu.get_by_username(destinations).username
             if isinstance(usuario.launcher, BaseMinimalLauncher):
-                Connections.notify(titulo, mensaje_minimal, destinations=usuario, file=__file__)
+                Connections.notify(title, mensaje_minimal, destinations=usuario, file=__file__)
             else:
-                Connections.notify(titulo, mensaje_normal, destinations=usuario, file=__file__)
+                Connections.notify(title, mensaje_normal, destinations=usuario, file=__file__)
         else:
             try:
                 usuarios_normales = []
                 usuarios_minimal = []
-                for nombre in destinos_notificacion:
+                for nombre in destinations:
                     usuario = gu.get_by_username(nombre)
                     if isinstance(usuario.launcher, BaseMinimalLauncher):
                         usuarios_minimal.append(usuario.username)
                     else:
                         usuarios_normales.append(usuario.username)
-                Connections.notify(titulo, mensaje_normal, destinations=usuarios_normales, file=__file__)
-                Connections.notify(titulo, mensaje_minimal, destinations=usuarios_minimal, file=__file__)
+                Connections.notify(title, mensaje_normal, destinations=usuarios_normales, file=__file__)
+                Connections.notify(title, mensaje_minimal, destinations=usuarios_minimal, file=__file__)
             except TypeError:
                 raise TypeError(
-                    '"destinos_notificacion" debe ser str o iterable, no ' + type(destinos_notificacion).__name__)
+                    '"destinations" debe ser str o iterable, no ' + type(destinations).__name__)
