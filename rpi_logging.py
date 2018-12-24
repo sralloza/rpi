@@ -4,12 +4,14 @@ import datetime
 import logging
 import os
 import platform
+import re
 
 from .dns import RpiDns
 from .exceptions import WrongLogType
 
 
 class Logger:
+    """Logger personal para todos los scripts."""
     DEFAULT_LEVEL_WINDOWS = logging.DEBUG
     DEFAULT_LEVEL_LINUX = logging.DEBUG
 
@@ -23,8 +25,9 @@ class Logger:
 
     @staticmethod
     def get(archivo: str, nombre, windows_level: int = None, linux_level: int = None, windows_log=None, linux_log=None):
+        """Genera un logger."""
+
         hoy = datetime.datetime.today().strftime('%Y-%m-%d')
-        filename = None
 
         if nombre == '__main__':
             name = '<' + os.path.basename(archivo)[:os.path.basename(archivo).rfind('.')] + '>'
@@ -42,7 +45,7 @@ class Logger:
             # Prevent logging from propagating to the root logger
             logger.propagate = 0
 
-            formato = '[%(asctime)s].[{id:3d}] %(levelname)s - %(name)s:%(lineno)s: %(message)s'
+            formato = '[%(asctime)s].[{id:04d}] %(levelname)s - %(module)s:%(lineno)s: %(message)s'
             formato2 = '%H:%M:%S'
 
             basepath = RpiDns.get('folder.logs')
@@ -71,8 +74,13 @@ class Logger:
                 with open(filename, 'wt', encoding='utf-8') as _:
                     pass
 
-            with open(filename, 'rt', encoding='utf-8') as f:
-                Logger.ID = f.read().count('INICIATED') + 1
+            with open(filename, encoding='utf-8') as fh:
+                logs = fh.read()
+
+            try:
+                Logger.ID = max([int(x.group(1)) for x in re.finditer(r'\[\d{2}:\d{2}:\d{2}\].\[(\d+)\]', logs)]) + 1
+            except ValueError:
+                Logger.ID = 1
 
             formatter = logging.Formatter(formato.format(**{'id': Logger.ID}), formato2)
 
@@ -106,17 +114,5 @@ class Logger:
             else:
                 logger.setLevel(linux_level)
                 # logging.basicConfig(level=linux_level, format=formato, datefmt=formato2, filename=filename)
-
-        if Logger.SEPARATED is False and Logger.NOMBRE is not None:
-            if filename is not None:
-                with open(filename, 'at+', encoding='utf-8') as f:
-                    f.seek(0)
-                    contenido = f.read()
-                    if contenido.endswith('\n\n') is False:
-                        f.write('\n')
-
-            foo = f'LOGGER INICIATED ({Logger.NOMBRE})'
-            logger.debug(f'{foo:-^79s}')
-            Logger.SEPARATED = True
 
         return logger

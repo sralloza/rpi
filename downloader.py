@@ -11,12 +11,14 @@ logger = Logger.get(__file__, __name__)
 
 
 class Downloader(requests.Session):
+    """Downloader with retries control."""
+
     def __init__(self, retries=10):
         self._retries = retries
         super().__init__()
 
     def get(self, *args, **kwargs):
-        logger.debug('GET ' + args[0])
+        logger.debug(f'GET {args[0]!r}')
         retries = self._retries
 
         while retries > 0:
@@ -24,13 +26,13 @@ class Downloader(requests.Session):
                 return super().get(*args, **kwargs)
             except ConnectionError:
                 retries -= 1
-                logger.warning('Connection error in GET, retries=' + str(retries))
+                logger.warning(f'Connection error in GET, retries={retries}')
 
-        logger.critical('Error de descarga en GET ' + args[0])
+        logger.critical(f'Download error in GET {args[0]!r}')
         raise DownloaderError('max retries failed.')
 
     def post(self, *args, **kwargs):
-        logger.debug('POST ' + args[0])
+        logger.debug(f'POST {args[0]!r}')
         retries = self._retries
 
         while retries > 0:
@@ -40,5 +42,5 @@ class Downloader(requests.Session):
                 retries -= 1
                 logger.warning('Connection error in POST, retries=' + str(retries))
 
-        logger.critical('Error de descarga en POST ' + args[0])
+        logger.critical(f'Download error in POST {args[0]!r}')
         raise DownloaderError('max retries failed.')
