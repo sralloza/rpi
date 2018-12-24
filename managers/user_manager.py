@@ -11,7 +11,7 @@ from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
 from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher
 from rpi.rpi_logging import Logger
 from .crontab_manager import CrontabManager
-from .service_manager import GestorServicios, ServicioRaspberry
+from .service_manager import ServiceManager, RaspberryService
 
 
 @dataclass(init=False)
@@ -38,7 +38,7 @@ class User:
         else:
             if isinstance(services, tuple) and len(services) == 1:
                 services = services[0]
-                if isinstance(services, ServicioRaspberry):
+                if isinstance(services, RaspberryService):
                     self.services = (services,)
                 else:
                     self.services = services
@@ -111,7 +111,7 @@ class UserManager(list):
             isbanned = user.isbanned
             email = user.email
 
-            services = GestorServicios.evaluar(user.services)
+            services = ServiceManager.eval(user.services)
             try:
                 launcher = json.loads(user.launcher)
             except JSONDecodeError:

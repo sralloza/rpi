@@ -18,7 +18,7 @@ from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, DownloaderError, \
     SpreadsheetNotFoundError, SheetNotFoundError
 from .managers.key_manager import KeyManager
-from .managers.service_manager import GestorServicios
+from .managers.service_manager import ServiceManager
 from .managers.user_manager import UserManager
 from .rpi_logging import Logger
 
@@ -59,7 +59,7 @@ class Connections:
         if destinations == 'broadcast' and file is None:
             raise NeccessaryArgumentError("Broadcast can't be used without the 'file' argument.")
 
-        servicio = GestorServicios.get(file) if file is not None else GestorServicios.UNKNOWN
+        servicio = ServiceManager.get(file) if file is not None else ServiceManager.UNKNOWN
 
         passports = {x: False for x in Connections.gu}
 

@@ -1,248 +1,241 @@
 import os
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Union
+from typing import Tuple, Union
 from warnings import warn
 
-from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, InvalidArgumentError, \
-    MissingOptionsError, InvalidOptionError
+from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, MissingOptionsError, \
+    InvalidOptionError
 
 
-class Opcion(object):
-    def __init__(self, nombre, tipo, incluir=True):
-        self.nombre = nombre
-        self.tipo = tipo
-        self.incluir = incluir
+class Option(object):
+    def __init__(self, name, type, include=True):
+        self.name = name
+        self.type = type
+        self.include = include
 
 
-class Comando(object):
+class Command(object):
 
-    def __init__(self, plantilla, ruta, notificar=True, preopcion=''):
-        self.preopcion = preopcion
-        self.ruta = ruta
+    def __init__(self, template, path, notify=True, preoption=''):
+        self.preoption = preoption
+        self.path = path
 
-        if notificar is True:
-            if plantilla.endswith(' ') is False:
-                plantilla += ' '
-            plantilla += '-notificar {USUARIO}'
+        if notify is True:
+            if template.endswith(' ') is False:
+                template += ' '
+            template += '-notify {USERNAME}'
 
-        self.plantilla = plantilla
+        self.template = template
 
     def __format__(self, **kwargs):
-        assert isinstance(kwargs['OPCIONES'], (tuple, list))
-        kwargs['OPCIONES'] = ' '.join([self.preopcion + x for x in kwargs['OPCIONES']])
-        return self.plantilla.format(**kwargs)
+        assert isinstance(kwargs['OPTIONS'], (tuple, list))
+        kwargs['OPTIONS'] = ' '.join([self.preoption + x for x in kwargs['OPTIONS']])
+        return self.template.format(**kwargs)
 
     def format(self, **kwargs):
         return self.__format__(**kwargs)
 
 
-class ServicioRaspberry(object):
+@dataclass(repr=False)
+class RaspberryService(object):
     DEFAULT = {'PYTHON': '/usr/local/bin/python3'}
+    name: str
+    command: Command
+    options: Union[Tuple[Option], tuple] = None
+    path: str = ''
+    extra_paths: tuple = None
+    data: tuple = None
+    isabstract: bool = False
+    ispublic: bool = False
 
-    def __init__(self, nombre: str, comando: Comando, opciones: List[Opcion] = None, ruta: str = '',
-                 rutas_extra: Union[tuple, list] = None, datos: object = None, esabstracto: bool = False,
-                 espublico: bool = False):
+    all_paths: tuple = field(init=False)
 
-        # COMPROBACIONES DE TIPOS DE VARIABLES
-        if isinstance(nombre, str) is False:
-            raise InvalidArgumentError(f"El nombre del Servicio debe ser str, no {type(nombre).__name__!r}")
+    def __post_init__(self):
 
-        if isinstance(comando, Comando) is False:
-            raise InvalidArgumentError(f"El comando debe ser de tipo Comando, no {type(nombre).__name__!r}")
-
-        if isinstance(opciones, (list, tuple)) is False:
-            raise InvalidArgumentError(f"El las opciones deben ser list o tuple, no {type(nombre).__name__!r}")
-
-        if isinstance(rutas_extra, str):
-            rutas_extra = (rutas_extra,)
-
-        rutas_extra = rutas_extra if rutas_extra is not None else tuple()
+        if self.extra_paths is None:
+            self.extra_paths = tuple()
 
         try:
-            self.rutas_extra = tuple(rutas_extra)
+            self.extra_paths = tuple(self.extra_paths)
         except TypeError:
-            raise InvalidArgumentError(f'Invalid type ({type(rutas_extra).__nombre__})')
+            raise TypeError(f'Invalid type ({self.extra_paths.__class__.__name__})')
 
-        if datos is None:
-            datos = ()
+        if self.data is None:
+            self.data = ()
 
-        self.nombre = nombre
-        self.comando = comando
-        self.opciones = opciones if opciones is not None else list()
-        self.ruta = ruta
-        self.esabstracto = esabstracto
+        if self.options is None:
+            self.options = tuple()
 
-        self.rutas_todas = self.rutas_extra + (self.ruta,)
-
-        self.datos = datos
-        self.espublico = espublico
+        self.all_paths = self.extra_paths + (self.path,)
 
     def __repr__(self):
-        return f"ServicioRaspberry({self.nombre})"
+        return f"RaspberryService({self.name})"
 
     @property
-    def nombres_opciones(self):
-        return [x.nombre for x in self.opciones]
+    def options_names(self):
+        return [x.name for x in self.options]
 
     @property
-    def nombres_con_ext(self):
-        """lista de nombres de archivo con extensión (enviar.py, aemet.py, ...)."""
-        return tuple([os.path.basename(x).lower() for x in self.rutas_todas])
+    def filenames_with_ext(self):
+        """list of filenames with extension (enviar.py, aemet.py, ...)."""
+        return tuple([os.path.basename(x).lower() for x in self.all_paths])
 
     @property
-    def nombres_sin_ext(self):
-        """lista de nombres de archivo sin extensión (enviar, aemet, ...)."""
-        return [os.path.splitext(x)[0].lower() for x in self.nombres_con_ext]
+    def filenames_without_ext(self):
+        """list of filenames without extension (enviar, aemet, ...)."""
+        return [os.path.splitext(x)[0].lower() for x in self.filenames_with_ext]
 
-    def corresponde_con(self, other):
+    def corresponds_with(self, other):
         other = os.path.basename(other).lower()
 
-        if other == self.nombre.lower():
+        if other == self.name.lower():
             return True
 
-        if other in self.nombres_con_ext:
+        if other in self.filenames_with_ext:
             return True
 
-        if other in self.nombres_sin_ext:
+        if other in self.filenames_without_ext:
             return True
 
         return False
 
-    def generar_comando(self, **kwargs):
-        kwargs.update(**ServicioRaspberry.DEFAULT)
-        kwargs.update(RUTA=self.ruta)
+    def generate_command(self, **kwargs):
+        kwargs.update(**RaspberryService.DEFAULT)
+        kwargs.update(RUTA=self.path)
 
-        if 'opciones' in kwargs:
-            kwargs['OPCIONES'] = kwargs['opciones']
-            del kwargs['opciones']
+        if 'options' in kwargs:
+            kwargs['OPTIONS'] = kwargs['options']
+            del kwargs['options']
 
-        if 'usuario' in kwargs:
-            kwargs['USUARIO'] = kwargs['usuario']
-            del kwargs['usuario']
+        if 'username' in kwargs:
+            kwargs['USERNAME'] = kwargs['username']
+            del kwargs['username']
 
         try:
-            for opt in kwargs['OPCIONES']:
-                if opt not in self.nombres_opciones:
-                    raise InvalidOptionError(f'La opción {opt!r} no está registrada ({self.nombres_opciones!r})')
+            for opt in kwargs['OPTIONS']:
+                if opt not in self.options_names:
+                    raise InvalidOptionError(f'Option {opt!r} is not registered ({self.options_names!r})')
         except KeyError:
-            raise MissingOptionsError('No se han especificado las opciones')
+            raise MissingOptionsError('Options have not been specified')
 
-        return self.comando.format(**kwargs)
+        return self.command.format(**kwargs)
 
 
-class GestorServicios(Enum):
-    """Clase que representa los servicios que se ejecutan en la rpi."""
-    AEMET = ServicioRaspberry(
-        nombre='AEMET',
-        comando=Comando(
-            plantilla='{PYTHON} {RUTA} {OPCIONES}',
-            ruta='/home/pi/scripts/aemet.py',
-            preopcion='-',
+class ServiceManager(Enum):
+    """Manager for the raspberry services."""
+
+    AEMET = RaspberryService(
+        name='AEMET',
+        command=Command(
+            template='{PYTHON} {PATH} {OPTIONS}',
+            path='/home/pi/scripts/aemet.py',
+            preoption='-',
         ),
-        opciones=[
-            Opcion('hora', 'time', incluir=False),
-            Opcion('hoy', 'radio'),
-            Opcion('manana', 'radio'),
-            Opcion('pasado', 'radio'),
-            Opcion('todos', 'radio')
-        ],
-        ruta='/home/pi/scripts/aemet.py',
-        espublico=True,
+        options=(
+            Option('hora', 'time', include=False),
+            Option('hoy', 'radio'),
+            Option('manana', 'radio'),
+            Option('pasado', 'radio'),
+            Option('todos', 'radio')
+        ),
+        path='/home/pi/scripts/aemet.py',
+        ispublic=True,
     )
-    MENUS = ServicioRaspberry(
-        nombre='MENUS',
-        comando=Comando(
-            plantilla='{PYTHON} {RUTA} salida -mostrar {OPCIONES}',
-            ruta='/home/pi/scripts/menus_resi.py',
+    MENUS = RaspberryService(
+        name='MENUS',
+        command=Command(
+            template='{PYTHON} {PATH} output -show {OPTIONS}',
+            path='/home/pi/scripts/menus_resi.py',
         ),
-        opciones=[
-            Opcion('hora', 'time', incluir=False),
-            Opcion('comida', 'radio'),
-            Opcion('cena', 'radio'),
-            Opcion('default', 'radio')
-        ],
-        ruta='/home/pi/scripts/menus_resi.py',
-        espublico=True,
-    )
-
-    VCS = ServicioRaspberry(
-        nombre='VCS',
-        comando=Comando(
-            # todo: crear comando
-            plantilla='{PYTHON} {RUTA} {OPCIONES}',
-            ruta='/home/pi/scripts/vcs.py',
+        options=(
+            Option('hora', 'time', include=False),
+            Option('comida', 'radio'),
+            Option('cena', 'radio'),
+            Option('default', 'radio')
         ),
-        opciones=[
-            Opcion('hora', 'time', incluir=False),
-        ],
-        ruta='/home/pi/scripts/vcs.py',
-        datos=['campus_username', 'campus_password'],
-        espublico=True
-    )
-    ENVIAR = ServicioRaspberry(
-        nombre='ENVIAR',
-        comando=Comando(
-            plantilla='{PYTHON} {RUTA} {OPCIONES}',
-            ruta='/home/pi/scripts/enviar.py',
-        ),
-        opciones=[],
-        ruta='/home/pi/scripts/enviar.py',
+        path='/home/pi/scripts/menus_resi.py',
+        ispublic=True,
     )
 
-    LOG = ServicioRaspberry(
-        nombre='LOG',
-        comando=Comando(
-            plantilla=None,
-            ruta=None,
-            notificar=False,
+    VCS = RaspberryService(
+        name='VCS',
+        command=Command(
+            # todo: crear command
+            template='{PYTHON} {RUTA} {OPTIONS}',
+            path='/home/pi/scripts/vcs.py',
         ),
-        opciones=[],
-        rutas_extra=[
+        options=(
+            Option('hora', 'time', include=False),
+        ),
+        path='/home/pi/scripts/vcs.py',
+        data=('campus_username', 'campus_password'),
+        ispublic=True
+    )
+    ENVIAR = RaspberryService(
+        name='ENVIAR',
+        command=Command(
+            template='{PYTHON} {PATH} {OPTIONS}',
+            path='/home/pi/scripts/enviar.py',
+        ),
+        options=(),
+        path='/home/pi/scripts/enviar.py',
+    )
+
+    LOG = RaspberryService(
+        name='LOG',
+        command=Command(
+            template=None,
+            path=None,
+            notify=False,
+        ),
+        options=(),
+        extra_paths=(
             '/home/pi/scripts/backup.py', '/home/pi/scripts/ngrok.py', '/home/pi/scripts/ngrok2.py',
             '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py', '/home/pi/scripts/gestor_mail.py',
             '/home/pi/scripts/controller.py', '/home/pi/pull.sh'
-        ],
-        esabstracto=True
+        ),
+        isabstract=True
     )
 
-    UNKNOWN = ServicioRaspberry(
-        nombre='UNKOWN',
-        comando=Comando(
-            plantilla=None,
-            ruta=None,
-            notificar=False,
+    UNKNOWN = RaspberryService(
+        name='UNKOWN',
+        command=Command(
+            template=None,
+            path=None,
+            notify=False,
         ),
-        opciones=[],
-        esabstracto=True
+        options=(),
+        isabstract=True
     )
 
     def __repr__(self):
-        return self.__class__.__nombre__ + '.' + self.nombre
+        return self.__class__.__nombre__ + '.' + self.name
 
     def __str__(self):
-        return self.nombre
+        return self.name
 
     @staticmethod
     def get(basepath):
 
-        if isinstance(basepath, ServicioRaspberry):
+        if isinstance(basepath, RaspberryService):
             return basepath
-        if isinstance(basepath, GestorServicios):
+        if isinstance(basepath, ServiceManager):
             return basepath.value
 
         basepath = os.path.basename(basepath).lower()
-        for servicio in GestorServicios:
-            if servicio.value.corresponde_con(basepath):
+        for servicio in ServiceManager:
+            if servicio.value.corresponds_with(basepath):
                 return servicio.value
 
-        warn(f"Servicio no reconocido: {basepath}", UnrecognisedServiceWarning)
-        return GestorServicios.UNKNOWN.value
+        warn(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
+        return ServiceManager.UNKNOWN.value
 
     @staticmethod
-    def evaluar(algo):
-        """Hace la conversión str -> Servicios."""
+    def eval(algo):
+        """Does the convertion str -> Servicios."""
         try:
-            data = eval(algo, globals(), GestorServicios.__dict__)
+            data = eval(algo, globals(), ServiceManager.__dict__)
         except SyntaxError:
             return tuple()
 
@@ -255,6 +248,6 @@ class GestorServicios(Enum):
             try:
                 data[i] = data[i].value
             except AttributeError:
-                warn(f"Puede que algo haya ido mal (data={data})", UnexpectedBehaviourWarning)
+                warn(f"Something may have gone wrong (data={data!r})", UnexpectedBehaviourWarning)
 
         return tuple(data)
