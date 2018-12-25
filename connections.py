@@ -143,6 +143,8 @@ class Connections:
         if files is not None:
             if isinstance(files, (tuple, list)):
                 files = {x: None for x in files}
+            elif isinstance(files, dict):
+                pass
             else:
                 files = {files: None}
 

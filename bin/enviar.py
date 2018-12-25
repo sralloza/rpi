@@ -21,6 +21,8 @@ def _enviar_main(id_recurso=None, keys=False):
     :param bool keys: si es true, sólo se imprimen las claves.
     """
 
+    raise NotImplementedError()
+
     automatic = False
     s = None
     realfilename = None

@@ -701,7 +701,7 @@ class MenusManager(object):
     @staticmethod
     def notify(message, destinations, show='default'):
         title = 'Menús Resi'
-        gu = UserManager.load()
+        gu = UserManager()
 
         if isinstance(destinations, str):
             if destinations.lower() == 'all':

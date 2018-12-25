@@ -16,7 +16,7 @@ def main():
     if len(sys.argv) <= 1:
         sys.argv.append('-h')
 
-    gu = UserManager.load()
+    gu = UserManager()
 
     parser = argparse.ArgumentParser(description='Rpi', prog='rpi')
 
