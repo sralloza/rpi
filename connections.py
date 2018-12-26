@@ -49,7 +49,7 @@ class Connections:
         return output
 
     @staticmethod
-    def notify(title, message, destinations=None, file=None, force=False):
+    def notify(title, message, destinations=None, file: dict = None, force=False):
         # TODO: INSERT DOCSTRING
         # TODO: IMPROVE CODE
         # TODO: TRANSLATE INTO ENGLISH

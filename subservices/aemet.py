@@ -16,7 +16,7 @@ logger = Logger.get(__file__, __name__)
 class WeatherRegistry:
     """Represents a weather registry of one hour."""
     day_of_week: str = field(repr=False)
-    month_day: int
+    day: int
     hour: int
     temperature: int
     thermal_sensation: int
@@ -36,9 +36,9 @@ class WeatherRegistry:
 
 def __post_init__(self):
     self._args = (
-        self.dia_semana, self.dia_mes, self.hora, self.temp, self.sens_term, self.viento_direc, self.viento,
-        self.viento_max, self.lluvia_mm, self.nieve_mm, self.hum_rel, self.prob_lluvia, self.prob_nieve,
-        self.prob_tormenta, self.avisos, self.info,
+        self.day_of_week, self.day, self.hour, self.temperature, self.thermal_sensation, self.wind_direction,
+        self.wind_speed, self.wind_speed_max, self.rain_mm, self.snow_mm, self.rel_hum, self.rain_prob, self.snow_prob,
+        self.storm_prob, self.announcements, self.info,
     )
 
 
@@ -54,25 +54,29 @@ def strfdata(self):
             f"lluvia, {self.nieve_mm:>4.1f} mm nieve\n-({self.info})\n")
 
 
-class GestorRegistros:
+class WeatherRecordsManager:
     """Represents a set of wheater records."""
     SEMANA = ('Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo')
 
     def __init__(self):
-        self.lista = []
+        self.list = []
 
     def __len__(self):
-        return len(self.lista)
+        return len(self.list)
 
     def __getitem__(self, index):
-        return self.lista[index]
+        return self.list[index]
 
     def __iter__(self):
-        return iter(self.lista)
+        return iter(self.list)
+
+    @classmethod
+    def valladolid(cls):
+        return cls.procesar(url='http://www.aemet.es/es/eltiempo/prediccion/municipios/horas/tabla/valladolid-id47186')
 
     @classmethod
     def procesar(cls, url):
-        """Procesa una página de AEMET para extraer la previsión por horas."""
+        """Processes an AEMET web page to extract the hour prevision."""
 
         self = cls.__new__(cls)
         self.__init__()
@@ -81,117 +85,115 @@ class GestorRegistros:
             with Downloader() as downloader:
                 principal_page = downloader.get(url)
         except DownloaderError:
-            logger.critical('Error de descarga de aemet')
+            logger.critical('Aemet download error')
             return None
 
-        sopa_principal = Soup(principal_page.text, "html.parser")
-        filas = sopa_principal.findAll(
+        s = Soup(principal_page.text, "html.parser")
+        rows = s.findAll(
             "tr", {"class": "fila_hora cabecera_niv2"})
 
-        dia_semana = "Error"
-        dia_mes = "Error"
-        prob_lluvia = None
-        prob_nieve = None
-        prob_tormenta = None
-        for i in filas:
-            img = i.find("img")
+        day_of_week = "Error"
+        day = -1
+        rain_prob = None
+        snow_prob = None
+        storm_prob = None
+        for row in rows:
+            img = row.find("img")
             info = img['title']
 
-            fila = i.text.strip(' ')
-            fila = fila.replace('\n', ' ')
-            fila = fila.replace('\r', '')
-            fila = fila.replace('\t', '')
-            elems = fila.split(" ")
-            n_espacios = elems.count('')
+            row = row.text.strip(' ')
+            row = row.replace('\n', ' ')
+            row = row.replace('\r', '')
+            row = row.replace('\t', '')
+            elements = row.split(" ")
+            n_espacios = elements.count('')
 
-            for contador in range(n_espacios):
-                elems.remove('')
+            for counter in range(n_espacios):
+                elements.remove('')
 
             try:
-                _ = int(elems[0])
+                _ = int(elements[0])
                 del _
 
-                elems.insert(0, dia_semana)
-                elems.insert(1, dia_mes)
+                elements.insert(0, day_of_week)
+                elements.insert(1, day)
             except ValueError:
-                if elems[0][:2] == "mi":
-                    elems[0] = "mié"
-                dia_semana = elems[0]
-                dia_mes = elems[1]
+                if elements[0][:2] == "mi":
+                    elements[0] = "mié"
+                day_of_week = elements[0]
+                day = elements[1]
 
-            if elems[11].count('%'):
-                prob_lluvia = elems[11]
-                elems.pop(12)
-                prob_nieve = elems[12]
-                elems.pop(13)
-                prob_tormenta = elems[13]
-                elems.pop(14)
+            if elements[11].count('%'):
+                rain_prob = elements[11]
+                elements.pop(12)
+                snow_prob = elements[12]
+                elements.pop(13)
+                storm_prob = elements[13]
+                elements.pop(14)
             else:
-                elems.insert(11, prob_lluvia)
-                elems.insert(12, prob_nieve)
-                elems.insert(13, prob_tormenta)
+                elements.insert(11, rain_prob)
+                elements.insert(12, snow_prob)
+                elements.insert(13, storm_prob)
 
             foo = ""
-            for h in range(14, len(elems)):
+            for h in range(14, len(elements)):
                 if h != 14:
                     foo += ' '
-                foo += elems[h]
-            elems[14] = foo
+                foo += elements[h]
+            elements[14] = foo
 
-            for h in range(len(elems) - 15):
-                elems.pop()
+            for h in range(len(elements) - 15):
+                elements.pop()
 
-            elems.append(info)
+            elements.append(info)
 
             for foo in (1, 2, 3, 4, 6, 7, 10):
-                elems[foo] = int(elems[foo])
+                elements[foo] = int(elements[foo])
 
             for foo in (8, 9):
-                if elems[foo].lower() in ["lp", "ip"]:
-                    elems[foo] = 0.0
-                elems[foo] = float(elems[foo])
+                if elements[foo].lower() in ["lp", "ip"]:
+                    elements[foo] = 0.0
+                elements[foo] = float(elements[foo])
 
-            self.lista.append(WeatherRegistry(*elems))
+            self.list.append(WeatherRegistry(*elements))
         return self
 
-    def mm(self, dia: datetime.date, index=False):
-        """Devuelve la suma de lluvia y nieve en mm de un día."""
-        dia_mes = dia.day
+    def mm(self, date: datetime.date, index=False):
+        """Returns the sum of rain and snow in mm of a day."""
 
-        suma = 0
-        cont = 0
-        for registro in self:
-            if registro.dia_mes == dia_mes:
-                suma += registro.lluvia_mm
-                suma += registro.nieve_mm
-                cont += 1
+        mm_sum = 0
+        counter = 0
+        for register in self:
+            if register.day == date.day:
+                mm_sum += register.rain_mm
+                mm_sum += register.snow_mm
+                counter += 1
 
         if index is True:
-            return suma, cont
+            return mm_sum, counter
 
-        return suma
+        return mm_sum
 
-    def porcentaje_medio(self, dia: datetime.date, index=False):
-        """Devuelve la suma de lluvia y nieve en mm de un día."""
-        dia_mes = dia.day
+    def mean_probability_percentage(self, dia: datetime.date, index=False):
+        """Returns the mean of the sum of the probability of rain, storm and snow of a day."""
 
-        suma = 0
-        cont = 0
-        for registro in self:
-            if registro.dia_mes == dia_mes:
-                suma += int(registro.prob_lluvia.replace('%', ''))
-                suma += int(registro.prob_nieve.replace('%', ''))
-                suma += int(registro.prob_tormenta.replace('%', ''))
-                cont += 1
+        percentage_sum = 0
+        counter = 0
+        for register in self:
+            if register.day == dia.day:
+                percentage_sum += int(register.rain_prob.replace('%', ''))
+                percentage_sum += int(register.snow_prob.replace('%', ''))
+                percentage_sum += int(register.storm_prob.replace('%', ''))
+                counter += 1
 
-        if cont == 0:
+        if counter == 0:
             return -1
 
-        media = suma / cont
-        if media > 100:
-            media = 100.0
+        mean = percentage_sum / counter
+        if mean > 100:
+            mean = 100.0
 
         if index is True:
-            return media, cont
+            return mean, counter
 
-        return media
+        return mean
