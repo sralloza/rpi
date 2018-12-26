@@ -4,21 +4,17 @@ import datetime
 import logging
 import os
 import platform
-import re
 
 from .dns import RpiDns
-from .exceptions import WrongLogType, WrongCalledError
+from .exceptions import WrongCalledError
 
 
-class Logger(logging.Logger):
-    """Logger personal para todos los scripts."""
+class Logging(logging.Logger):
+    """Logging personal para todos los scripts."""
     DEFAULT_LEVEL_WINDOWS = logging.DEBUG
     DEFAULT_LEVEL_LINUX = logging.DEBUG
 
-    DEFAULT_LOG_WINDOWS = 'file'
-    DEFAULT_LOG_LINUX = 'file'
     NOMBRE = None
-    ID = None
 
     CREATED = False
     SEPARATED = False
@@ -34,98 +30,56 @@ class Logger(logging.Logger):
         handler.setLevel(logging.CRITICAL)
 
     @staticmethod
-    def get(archivo: str, nombre, windows_level: int = None, linux_level: int = None, windows_log=None,
-            linux_log=None, setglobal=False):
+    def get(archivo: str, nombre: str, windows_level: int = None, linux_level: int = None, setglobal=False):
         """Genera un logger."""
 
         hoy = datetime.datetime.today().strftime('%Y-%m-%d')
 
         if nombre == '__main__':
             name = '<' + os.path.basename(archivo)[:os.path.basename(archivo).rfind('.')] + '>'
-            Logger.NOMBRE = name
+            Logging.NOMBRE = name
         else:
             name = nombre
 
-        windows_level = Logger.DEFAULT_LEVEL_WINDOWS if windows_level is None else windows_level
-        linux_level = Logger.DEFAULT_LEVEL_LINUX if linux_level is None else linux_level
-        windows_log = Logger.DEFAULT_LOG_WINDOWS if windows_log is None else windows_log
-        linux_log = Logger.DEFAULT_LOG_LINUX if linux_log is None else linux_log
+        windows_level = Logging.DEFAULT_LEVEL_WINDOWS if windows_level is None else windows_level
+        linux_level = Logging.DEFAULT_LEVEL_LINUX if linux_level is None else linux_level
 
         logger = logging.getLogger(name)
         if not logger.handlers:
             # Prevent logging from propagating to the root logger
             logger.propagate = 0
 
-            formato = '[%(asctime)s].[{id:04d}] %(levelname)s - %(module)s:%(lineno)s: %(message)s'
-            formato2 = '%H:%M:%S'
+            # logging_format = '[%(asctime)s] %(levelname)s - %(name)s - %(module)s:%(lineno)s: %(message)s'
+            logging_format = '[%(asctime)s] %(levelname)s - %(name)s:%(lineno)s: %(message)s'
+            time_format = '%H:%M:%S'
 
-            basepath = RpiDns.get('folder.logs')
+            logs_folder = RpiDns.get('folder.logs')
 
-            if os.path.isdir(basepath) is False:
-                os.mkdir(basepath)
+            if os.path.isdir(logs_folder) is False:
+                os.mkdir(logs_folder)
 
-            if basepath.endswith('/') is False:
-                basepath += '/'
+            if logs_folder.endswith('/') is False:
+                logs_folder += '/'
 
-            carpeta_log = basepath
+            if os.path.isdir(logs_folder) is False:
+                os.mkdir(logs_folder)
 
-            if os.path.isdir(carpeta_log) is False:
-                os.mkdir(carpeta_log)
+            filename = logs_folder + hoy + '.log'
 
-            path = carpeta_log + hoy + '.log'
+            Logging.CREATED = True
 
-            Logger.CREATED = True
+            formatter = logging.Formatter(logging_format, time_format)
 
-            if platform.system() == 'Windows':
-                filename = None if windows_log != 'file' else path
-            else:
-                filename = None if linux_log != 'file' else path
-
-            if os.path.isfile(filename) is False:
-                with open(filename, 'wt', encoding='utf-8') as _:
-                    pass
-
-            with open(filename, encoding='utf-8') as fh:
-                logs = fh.read()
-
-            try:
-                Logger.ID = max([int(x.group(1)) for x in re.finditer(r'\[\d{2}:\d{2}:\d{2}\].\[(\d+)\]', logs)]) + 1
-            except ValueError:
-                Logger.ID = 1
-
-            formatter = logging.Formatter(formato.format(**{'id': Logger.ID}), formato2)
-
-            if platform.system() == 'Windows':
-                if windows_log == 'file':
-                    filehandler = logging.FileHandler(path, 'a', 'utf-8')
-                    filehandler.setFormatter(formatter)
-                    logger.addHandler(filehandler, )
-                elif windows_log == 'console':
-                    console = logging.StreamHandler()
-                    console.setFormatter(formatter)
-                    logger.addHandler(console)
-                else:
-                    raise WrongLogType(f"'{windows_log} no es un tipo válido de log ('file' | 'console')'")
-
-            elif platform.system() == 'Linux':
-                if windows_log == 'file':
-                    filehandler = logging.FileHandler(path, 'a', 'utf-8')
-                    filehandler.setFormatter(formatter)
-                    logger.addHandler(filehandler)
-                elif windows_log == 'console':
-                    console = logging.StreamHandler()
-                    console.setFormatter(formatter)
-                    logger.addHandler(console)
-                else:
-                    raise WrongLogType(f"'{linux_log} no es un tipo válido de log ('file' | 'console')'")
+            filehandler = logging.FileHandler(filename, 'a', 'utf-8')
+            filehandler.setFormatter(formatter)
+            logger.addHandler(filehandler, )
 
             if platform.system() == 'Windows':
                 logger.setLevel(windows_level)
-                if setglobal is True:
-                    logging.basicConfig(level=windows_level, format=formato, datefmt=formato2, filename=filename)
             else:
                 logger.setLevel(linux_level)
-                if setglobal is True:
-                    logging.basicConfig(level=linux_level, format=formato, datefmt=formato2, filename=filename)
+
+            if setglobal is True:
+                logging.basicConfig(level=windows_level, format=logging_format, datefmt=time_format, filename=filename)
 
         return logger

@@ -13,25 +13,25 @@ from gspread import WorksheetNotFound
 from gspread.exceptions import SpreadsheetNotFound
 from oauth2client.service_account import ServiceAccountCredentials as Sac
 
+from rpi.managers.keys_manager import KeysManager
+from rpi.managers.services_manager import ServicesManager
+from rpi.managers.users_manager import UsersManager
 from .dns import RpiDns
 from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, DownloaderError, \
     SpreadsheetNotFoundError, SheetNotFoundError
-from .managers.key_manager import KeyManager
-from .managers.service_manager import ServiceManager
-from .managers.user_manager import UserManager
-from .rpi_logging import Logger
+from .rpi_logging import Logging
 
 debug_lock = Lock()
-logger = Logger.get(__file__, __name__)
 
 
 class Connections:
     """Manages every outgoing connection."""
-    gu = UserManager()
+    gu = UsersManager()
     DISABLE = platform.system() == 'Windows'
 
     def __init__(self):
+        self.logger = Logging.get(__file__, __name__)
         self.lock = Lock()
         self.errores = []
         self._downloader = Downloader()
@@ -56,6 +56,7 @@ class Connections:
 
         self = object.__new__(Connections)
         self.__init__()
+        self.logger.debug(f'Notify - {title!r}, {message!r}, {destinations!r}, {file!r}, {force!r}')
 
         if file is None and force is False:
             raise NeccessaryArgumentError("The 'file' argument is needed in order to check permissions.")
@@ -63,7 +64,7 @@ class Connections:
         if destinations == 'broadcast' and file is None:
             raise NeccessaryArgumentError("Broadcast can't be used without the 'file' argument.")
 
-        service = ServiceManager.get(file) if file is not None else ServiceManager.UNKNOWN
+        service = ServicesManager.get(file) if file is not None else ServicesManager.UNKNOWN
 
         passports = {x: False for x in Connections.gu}
 
@@ -81,7 +82,7 @@ class Connections:
                 for persona in destinations:
                     passports[Connections.gu.get_by_username(persona)] = True
             except TypeError:
-                logger.critical(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
+                self.logger.critical(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
                 raise TypeError(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
 
         # Checking validations of usernames (check that each username is registered at the database)
@@ -94,21 +95,21 @@ class Connections:
             if passports[user] is False:
                 continue
             if service not in user.services and force is False:
-                logger.warning(f'User {user.username!r} is not registered in the service {service.name!r}')
+                self.logger.warning(f'User {user.username!r} is not registered in the service {service.name!r}')
                 continue
 
-            logger.debug(f'Starting connection thread of {user.username!r}')
+            self.logger.debug(f'Starting connection thread of {user.username!r}')
             threads.append(Thread(name=user.username, target=self._notify, args=(user, title, message), daemon=True))
             threads[-1].start()
 
         for thread in threads:
             thread.join()
 
-        logger.debug('Connection threads finished')
+        self.logger.debug('Connection threads finished')
 
         if len(self.errores) > 0:
             report = {'title': title, 'message': message, 'destinations': destinations, 'file': file, 'force': force}
-            logger.error(f'Notification errors: {report}')
+            self.logger.error(f'Notification errors: {report}')
             return False
         else:
             return True
@@ -120,15 +121,15 @@ class Connections:
 
         try:
             if user.isactive is False:
-                logger.warning(f'BANNED USER: {user.username!r}')
+                self.logger.warning(f'BANNED USER: {user.username!r}')
                 return False
 
             if Connections.DISABLE is True:
-                logger.warning(f'DISABLED NOTIFICATIONS - {user.username!r}')
+                self.logger.warning(f'DISABLED NOTIFICATIONS - {user.username!r}')
                 return False
             else:
                 user.launcher.fire(title, message)
-                logger.debug(f'Sent notification to {user.username!r}')
+                self.logger.debug(f'Sent notification to {user.username!r}')
                 return True
         except DownloaderError:
             self.append_error(user)
@@ -162,8 +163,8 @@ class Connections:
             else:
                 raise TypeError
 
-        password = KeyManager.get('mail_password')
-        username = KeyManager.get('mail_username')
+        password = KeysManager.get('mail_password')
+        username = KeysManager.get('mail_username')
 
         msg = MIMEMultipart()
         msg['From'] = f"{origin} <{username}>"
@@ -199,6 +200,7 @@ class Connections:
     def to_google_spreadsheets(filename, sheetname, data):
         # TODO: INCLUDE DOCSTRING
 
+        logger = Logging.get(__file__, __name__)
         logger.debug(f'Saving info to google spreadsheets - {filename} - {sheetname} - {data}')
 
         # Some stuff that needs to be done to use google sheets
@@ -226,6 +228,7 @@ class Connections:
     def from_google_spreadsheets(filename, sheetname):
         # TODO: INCLUDE DOCSTRING
 
+        logger = Logging.get(__file__, __name__)
         logger.debug(f'Getting info from google spreadsheets - {filename} - {sheetname}')
 
         # Some stuff that needs to be done to use google sheets

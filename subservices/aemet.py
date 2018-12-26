@@ -7,9 +7,7 @@ from bs4 import BeautifulSoup as Soup
 
 from rpi.downloader import Downloader
 from rpi.exceptions import DownloaderError
-from rpi.rpi_logging import Logger
-
-logger = Logger.get(__file__, __name__)
+from rpi.rpi_logging import Logging
 
 
 @dataclass()
@@ -59,6 +57,7 @@ class WeatherRecordsManager:
     SEMANA = ('Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo')
 
     def __init__(self):
+        self.logger = Logging.get(__file__, __name__)
         self.list = []
 
     def __len__(self):
@@ -81,11 +80,13 @@ class WeatherRecordsManager:
         self = cls.__new__(cls)
         self.__init__()
 
+        self.logger.debug(f'Processing web - {url!r}')
+
         try:
             with Downloader() as downloader:
                 principal_page = downloader.get(url)
         except DownloaderError:
-            logger.critical('Aemet download error')
+            self.logger.critical('Aemet download error')
             return None
 
         s = Soup(principal_page.text, "html.parser")
@@ -156,6 +157,8 @@ class WeatherRecordsManager:
                 elements[foo] = float(elements[foo])
 
             self.list.append(WeatherRegistry(*elements))
+
+        self.logger.debug('Web processed successfully')
         return self
 
     def mm(self, date: datetime.date, index=False):
@@ -169,18 +172,20 @@ class WeatherRecordsManager:
                 mm_sum += register.snow_mm
                 counter += 1
 
+        self.logger.debug(f'milimiters for {date}: {mm_sum}, {counter}')
+
         if index is True:
             return mm_sum, counter
 
         return mm_sum
 
-    def mean_probability_percentage(self, dia: datetime.date, index=False):
+    def mean_probability_percentage(self, date: datetime.date, index=False):
         """Returns the mean of the sum of the probability of rain, storm and snow of a day."""
 
         percentage_sum = 0
         counter = 0
         for register in self:
-            if register.day == dia.day:
+            if register.day == date.day:
                 percentage_sum += int(register.rain_prob.replace('%', ''))
                 percentage_sum += int(register.snow_prob.replace('%', ''))
                 percentage_sum += int(register.storm_prob.replace('%', ''))
@@ -189,11 +194,13 @@ class WeatherRecordsManager:
         if counter == 0:
             return -1
 
-        mean = percentage_sum / counter
-        if mean > 100:
-            mean = 100.0
+        percentage_mean = percentage_sum / counter
+        if percentage_mean > 100:
+            percentage_mean = 100.0
+
+        self.logger.debug(f'Percentage mean for {date}: {percentage_mean}, {counter}')
 
         if index is True:
-            return mean, counter
+            return percentage_mean, counter
 
-        return mean
+        return percentage_mean

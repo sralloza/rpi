@@ -16,8 +16,8 @@ from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import InvalidMonthError, InvalidDayError, DownloaderError
 from rpi.launcher import BaseMinimalLauncher
-from rpi.managers.user_manager import UserManager
-from rpi.rpi_logging import Logger
+from rpi.managers.users_manager import UsersManager
+from rpi.rpi_logging import Logging
 
 MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
          "agosto", "septiembre", "octubre", "noviembre", "diciembre")
@@ -28,8 +28,6 @@ TDIAS = ("lunes", "martes", "miércoles", "jueves",
 EDIAS = ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')
 MESES_MAX = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 PARAMETROS = ("--tomorrow", "--t", "--find", "--f", "--yesterday", "--y")
-
-logger = Logger.get(__file__, __name__)
 
 if int(time.strftime("%Y")) % 4 == 0:
     MESES_MAX[1] = 29
@@ -75,7 +73,8 @@ class MenusDatabaseManager:
     """Gestor de la base de datos de menús de la Residencia Santiago."""
 
     def __init__(self):
-        logger.debug('Starting database manager')
+        self.logger = Logging.get(__file__, __name__)
+        self.logger.debug('Starting database manager')
         self.con = sqlite3.connect(RpiDns.get('sqlite.menus_resi'))
         self.cur = self.con.cursor()
 
@@ -112,12 +111,17 @@ class MenusDatabaseManager:
         try:
             self.cur.execute('INSERT INTO "links" VALUES(?,?)', data_pack)
         except IntegrityError:
+            self.logger.debug(f'Link already exists: {link!r}')
             return False
+
+        self.logger.debug(f'Saved link: {link!r}')
         return True
 
     def extract_links(self):
         self.cur.execute("SELECT link FROM links")
         links = [x[0] for x in self.cur.fetchall()]
+
+        self.logger.debug('Extracting links from database')
         return links
 
     # ------   OPERATIONS WITH MENUS   ------
@@ -130,21 +134,24 @@ class MenusDatabaseManager:
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
         except IntegrityError:
+            self.logger.debug(f'Menu already exists: {menu!r}')
             return False
+        self.logger.debug(f'Saved menu: {menu!r}')
         return True
 
     def save_changes(self):
         """Saves all changes in the databases."""
         self.con.commit()
 
-    def extract_menus(self):
+    def extract_menus_data(self):
         """Extract all data from the database."""
-        # todo: this method should return a list of Menus, not a list of chaos data.
         self.cur.execute('SELECT * FROM "menus"')
+        self.logger.debug('Extracting menus data from database')
         return self.cur.fetchall()
 
     def close(self):
         """Saves changes and closes the database connection."""
+        self.logger.debug('Closing database')
         self.con.commit()
         self.con.close()
         del self.con
@@ -196,6 +203,7 @@ class Menu:
     def __str__(self, arg='default', html=False, minimal=False):
 
         if minimal is True and arg == 'default':
+            logger = Logging.get(__file__, __name__)
             logger.warning('Too much information (minimal=True, arg=\'default\')')
 
         o = ''
@@ -275,9 +283,11 @@ class Menu:
 class MenusManager(object):
     """Manages a list of menus."""
 
-    def __init__(self):
-        logger.debug('Starting menus manager')
+    def __init__(self, url):
+        self.logger = Logging.get(__file__, __name__)
+        self.logger.debug('Starting menus manager')
 
+        self.url = url
         self.list = []
         self.opcodes = []
         self.downloader = Downloader()
@@ -300,6 +310,10 @@ class MenusManager(object):
         self.sqlite_lock = threading.Lock()
         self.links_to_save = []
 
+        self.load()
+
+        self.logger.debug('Menus manager loaded')
+
     def __contains__(self, item):
         if isinstance(item, int):
             return item in (x.id for x in self)
@@ -311,8 +325,8 @@ class MenusManager(object):
 
     def load_from_database(self):
 
-        logger.debug('Loading menus from database')
-        menus = self.database_manager.extract_menus()
+        self.logger.debug('Loading menus from database')
+        menus = self.database_manager.extract_menus_data()
         for row in menus:
             _, _, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
             menu = Menu(
@@ -322,13 +336,15 @@ class MenusManager(object):
             self.list.append(menu)
 
     def save_to_database(self):
-        logger.debug('Saving to database')
+        self.logger.debug('Saving menus to database')
         i = 0
         for menu in self:
             out = self.database_manager.save_menu(menu)
             if out:
                 i += 1
         self.database_manager.save_changes()
+
+        self.logger.debug(f'Saved {i} menus to database')
         return i
 
     def sort(self, **kwargs):
@@ -368,10 +384,7 @@ class MenusManager(object):
                 menu.dinner2 = kwargs.pop("dinner2")
             self.list.append(menu)
 
-    @classmethod
-    def load(cls, url):
-        self = object.__new__(cls)
-        self.__init__()
+    def load(self):
         self.load_from_database()
 
         current_day, current_month, current_year = get_date()
@@ -380,7 +393,7 @@ class MenusManager(object):
 
         if current_id in self:
             return self
-        self.download_and_process_web(url)
+        self.download_and_process_web()
         self.save_to_database()
 
         return self
@@ -389,7 +402,10 @@ class MenusManager(object):
     def load_csv(csvpath):
         """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;launch1;launch2...'"""
         self = object.__new__(MenusManager)
-        self.__init__()
+        self.__init__(None)
+
+        self.logger.debug('Loading from csv')
+
         with open(csvpath, encoding='utf-8') as f:
             contenido = f.read().splitlines()
 
@@ -419,17 +435,18 @@ class MenusManager(object):
         contenido = copia
 
         for fila in contenido:
-            logger.debug('Añadiendo menú manual: ' + str(fila))
             self.list.append(Menu(fila[0], fila[1], fila[2], launch1=fila[3], launch2=fila[4],
                                   dinner1=fila[5], dinner2=fila[6], origin='manual'))
 
         guardado = self.save_to_database()
-        logger.debug(f'Guardados {guardado} registros en la base de datos')
+        self.logger.debug(f'Saved {guardado} menus in the data base')
         return guardado
 
-    def download_and_process_web(self, url):
+    def download_and_process_web(self):
         """Descarga y procesa la página web."""
-        opcodes = self.generate_opcodes(url)
+
+        self.logger.debug(f'Downloading and processing {self.url!r}')
+        opcodes = self.generate_opcodes(self.url)
         if opcodes == -1:
             return -1
         lista = self.process_opcodes()
@@ -474,6 +491,8 @@ class MenusManager(object):
     def generate_opcodes(self, url):
         """Descarga la web de la residencia y crea los opcodes."""
 
+        self.logger.debug('Generating opcodes')
+
         try:
             html = self.downloader.get(url)
         except DownloaderError:
@@ -509,11 +528,12 @@ class MenusManager(object):
             self.opcodes.append(anything)
 
     def procesar_url_menus(self, url):
+        self.logger.debug(f'Processing web {url!r}')
 
         try:
             html = self.downloader.get(url)
         except DownloaderError:
-            logger.error('Skipped: ' + url)
+            self.logger.error(f'Skipped: {url!r}')
             return
 
         with self.sqlite_lock:
@@ -662,6 +682,8 @@ class MenusManager(object):
     def process_opcodes(self) -> List[dict]:
         """Transforma una list del tipo [OPCODE] [VALOR] en una list con la información de cada opcode extraída en
         forma de diccionario."""
+
+        self.logger.debug('Processing opcodes')
         salida = []
         for line in self.opcodes:
             d = {}
@@ -701,7 +723,7 @@ class MenusManager(object):
     @staticmethod
     def notify(message, destinations, show='default'):
         title = 'Menús Resi'
-        gu = UserManager()
+        gu = UsersManager()
 
         if isinstance(destinations, str):
             if destinations.lower() == 'all':

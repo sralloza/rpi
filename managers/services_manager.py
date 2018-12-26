@@ -6,6 +6,7 @@ from warnings import warn
 
 from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, MissingOptionsError, \
     InvalidOptionError
+from rpi.rpi_logging import Logging
 
 
 class Option(object):
@@ -122,7 +123,7 @@ class RaspberryService(object):
         return self.command.format(**kwargs)
 
 
-class ServiceManager(Enum):
+class ServicesManager(Enum):
     """Manager for the raspberry services."""
 
     AEMET = RaspberryService(
@@ -210,24 +211,31 @@ class ServiceManager(Enum):
     @staticmethod
     def get(basepath):
 
+        logger = Logging.get(__file__, __name__)
+        logger.debug(f'Trying to identify service from {basepath!r}')
+
         if isinstance(basepath, RaspberryService):
             return basepath
-        if isinstance(basepath, ServiceManager):
+        if isinstance(basepath, ServicesManager):
             return basepath.value
 
         basepath = os.path.basename(basepath).lower()
-        for servicio in ServiceManager:
+        for servicio in ServicesManager:
             if servicio.value.corresponds_with(basepath):
                 return servicio.value
 
+        logger.warning(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
         warn(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
-        return ServiceManager.UNKNOWN.value
+        return ServicesManager.UNKNOWN.value
 
     @staticmethod
     def eval(algo):
         """Does the convertion str -> Servicios."""
+
+        logger = Logging.get(__file__, __name__)
+        logger.debug(f'Evaluating {algo!r}')
         try:
-            data = eval(algo, globals(), ServiceManager.__dict__)
+            data = eval(algo, globals(), ServicesManager.__dict__)
         except SyntaxError:
             return tuple()
 
@@ -241,5 +249,7 @@ class ServiceManager(Enum):
                 data[i] = data[i].value
             except AttributeError:
                 warn(f"Something may have gone wrong (data={data!r})", UnexpectedBehaviourWarning)
+
+        logger.debug(f'Evaluated: {tuple(data)!r}')
 
         return tuple(data)

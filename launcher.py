@@ -4,9 +4,7 @@ from telegram import Bot
 from rpi.managers.config_manager import ConfigManager
 from .downloader import Downloader
 from .exceptions import DownloaderError, UserError
-from .rpi_logging import Logger
-
-logger = Logger.get(__file__, __name__)
+from .rpi_logging import Logging
 
 
 class BaseLauncher(object):
@@ -18,6 +16,7 @@ class BaseLauncher(object):
         else:
             self._downloader = downloader
 
+        self.logger = Logging.get(__file__, __name__)
         self.url = None
         self.chat_id = None
         self.code = None
@@ -68,9 +67,9 @@ class IftttLauncher(BaseExtendedLauncher):
         report = {'value1': title, 'value2': message}
         try:
             self._downloader.post(self.url, data=report)
-            logger.debug('IftttLauncher Fired')
+            self.logger.debug('IftttLauncher Fired')
         except DownloaderError:
-            logger.error('Error de notificación en IftttLauncher')
+            self.logger.error('DownloadError in IftttLauncher')
 
     def to_json(self):
         return {"type": "IFTTT", "url": self.url}
@@ -93,11 +92,12 @@ class TelegramLauncher(BaseExtendedLauncher):
         bot = Bot(ConfigManager.get('telegram_bot_token'))
 
         if self.chat_id is None:
-            logger.critical('User not confirmed')
+            self.logger.critical('User not confirmed')
             raise UserError('User not confirmed')
 
         complete_message = title + ':\n' + message
         bot.send_message(chat_id=self.chat_id, text=complete_message)
+        self.logger.debug('TelegramLauncher Fired')
 
     def to_json(self):
         self.update_status()
@@ -120,9 +120,9 @@ class NotifyRunLauncher(BaseMinimalLauncher):
     def fire(self, title, message):
         try:
             self._downloader.post(self.url, {'message': message})
-            logger.debug('NotifyRunLauncher Fired')
+            self.logger.debug('NotifyRunLauncher Fired')
         except DownloaderError:
-            logger.error('Error de notificación en NotifyRunLauncher')
+            self.logger.error('DownloadError in NotifyRunLauncher')
 
     def to_json(self):
         return {"type": "NotifyRun", "url": self.url}

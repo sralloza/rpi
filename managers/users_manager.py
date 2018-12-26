@@ -9,9 +9,9 @@ from json import JSONDecodeError
 from rpi.dns import RpiDns
 from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
 from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, TelegramLauncher
-from rpi.rpi_logging import Logger
+from rpi.rpi_logging import Logging
 from .crontab_manager import CrontabManager
-from .service_manager import ServiceManager, RaspberryService
+from .services_manager import ServicesManager, RaspberryService
 
 
 @dataclass(init=False, unsafe_hash=True)
@@ -58,11 +58,12 @@ class User:
         return self.username
 
 
-class UserManager(list):
+class UsersManager(list):
     """Clase para gestionar los usuarios."""
 
     def __init__(self):
         super().__init__()
+        self.logger = Logging.get(__file__, __name__)
         self.path = None
         self.con = None
         self.cur = None
@@ -74,11 +75,15 @@ class UserManager(list):
 
     @property
     def usernames(self):
-        return tuple([x.username for x in self])
+        result = tuple([x.username for x in self])
+        self.logger.debug(f'Returning list of usernames - {result!r}')
+        return result
 
     @property
     def emails(self):
-        return tuple([x.email for x in self])
+        result = tuple([x.email for x in self])
+        self.logger.debug(f'Returning list of emails - {result!r}')
+        return result
 
     def save_launcher(self, username):
         for user in self:
@@ -90,11 +95,14 @@ class UserManager(list):
                 self.cur.execute('update usuarios_usuario set launcher=? where username=?', data)
                 self.con.commit()
                 self.con.close()
+                self.logger.debug(f'Saved launcher for {username!r}')
                 return True
+        self.logger.debug(f'Could not save launcher for {username!r}')
         return False
 
     def load(self):
         """Carga todos los usuarios."""
+        self.logger.debug('Loading users')
 
         @dataclass
         class TempUser:
@@ -107,8 +115,7 @@ class UserManager(list):
         self.path = RpiDns.get('sqlite.django')
 
         if os.path.isfile(self.path) is False:
-            logger = Logger.get(__file__, __name__)
-            logger.critical('User database not found')
+            self.logger.critical('User database not found')
             raise FileNotFoundError('User database not found')
 
         self.con = sqlite3.connect(self.path)
@@ -125,7 +132,7 @@ class UserManager(list):
             isbanned = user.isactive
             email = user.email
 
-            services = ServiceManager.eval(user.services)
+            services = ServicesManager.eval(user.services)
             try:
                 launcher = json.loads(user.launcher)
             except JSONDecodeError:
@@ -142,11 +149,13 @@ class UserManager(list):
 
             self.append(User(username, launcher, isbanned, email, services))
 
+        self.logger.debug('Users loaded')
         return self
 
     def get_by_username(self, username):
-
+        self.logger.debug('Getting user by username - {username!r}')
         for user in self:
             if user.username == username:
                 return user
+        self.logger.critical(f'Unknown username: {username!r}')
         raise UnrecognisedUsernameError(f'Unknown username: {username!r}')

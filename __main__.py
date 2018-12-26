@@ -5,7 +5,7 @@ import sys
 
 from . import __VERSION__ as VERSION, ADMIN_EMAIL
 from .connections import Connections
-from .managers.user_manager import UserManager
+from .managers.users_manager import UsersManager
 
 
 def report_error(error):
@@ -16,7 +16,7 @@ def main():
     if len(sys.argv) <= 1:
         sys.argv.append('-h')
 
-    gu = UserManager()
+    gu = UsersManager()
 
     parser = argparse.ArgumentParser(description='Rpi', prog='rpi')
 
