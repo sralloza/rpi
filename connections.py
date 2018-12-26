@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import os
 import platform
 import smtplib
 from email import encoders
@@ -140,13 +140,27 @@ class Connections:
         if isinstance(destinations, list) or isinstance(destinations, tuple):
             destinations = ', '.join(destinations)
 
+        try:
+            if len(files) == 0:
+                files = None
+        except TypeError:
+            pass
+
         if files is not None:
             if isinstance(files, (tuple, list)):
-                files = {x: None for x in files}
+                if is_file is False:
+                    files = {x: os.path.basename(x) for x in files}
+                else:
+                    files = {x: None for x in files}
             elif isinstance(files, dict):
                 pass
+            elif isinstance(files, str):
+                if is_file is False:
+                    files = {files: os.path.basename(files)}
+                else:
+                    files = {files: None}
             else:
-                files = {files: None}
+                raise TypeError
 
         password = KeyManager.get('mail_password')
         username = KeyManager.get('mail_username')
