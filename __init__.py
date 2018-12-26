@@ -13,6 +13,6 @@ def operating_system():
     return platform.system()[0]
 
 
-def opating_system_in_brackets():
+def operating_system_in_brackets():
     """Returns the operating system icon between brakets."""
     return '(' + operating_system() + ')'

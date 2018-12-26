@@ -184,7 +184,7 @@ class ServiceManager(Enum):
         extra_paths=(
             '/home/pi/scripts/backup.py', '/home/pi/scripts/ngrok.py', '/home/pi/scripts/ngrok2.py',
             '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py', '/home/pi/scripts/gestor_mail.py',
-            '/home/pi/scripts/controller.py', '/home/pi/pull.sh'
+            '/home/pi/scripts/controller.py', '/home/pi/scripts/telegram_bot.py', '/home/pi/pull.sh',
         ),
         isabstract=True
     )

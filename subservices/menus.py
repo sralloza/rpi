@@ -210,7 +210,7 @@ class Menu:
         if minimal is False:
             o += '\n'
 
-        if arg == 'comida' or arg == 'default':
+        if arg == 'launch' or arg == 'default':
             if self.launch1 is not None:
                 o += f'Comida: {self.launch1}'
                 if self.launch2 is not None:
@@ -219,7 +219,7 @@ class Menu:
         if arg == 'default':
             o += '\n'
 
-        if arg == 'cena' or arg == 'default':
+        if arg == 'dinner' or arg == 'default':
             if self.dinner1 is not None:
                 o += f'Cena: {self.dinner1}'
                 if self.dinner2 is not None:

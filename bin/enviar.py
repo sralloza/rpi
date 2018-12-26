@@ -4,7 +4,7 @@ import argparse
 import datetime
 import time
 
-from rpi import opating_system_in_brackets, ADMIN_EMAIL
+from rpi import operating_system_in_brackets, ADMIN_EMAIL
 from rpi.connections import Connections
 from rpi.dns import RpiDns
 from rpi.exceptions import NeccessaryArgumentError
@@ -112,12 +112,15 @@ def _enviar_main(id_recurso=None, keys=False):
     if mail is True:
         notif = Connections.notify(
             'Gestor de envíos', 'Petición aceptada:\n' + asunto, file=__file__)
-        logger.debug('Gestor de envíos ' + opating_system_in_brackets() + ': Enviada "' + descripcion + '" a "' + destino + '"')
+        logger.debug(
+            'Gestor de envíos ' + operating_system_in_brackets() +
+            ': Enviada "' + descripcion + '" a "' + destino + '"')
     else:
         notif = Connections.notify(
             'Gestor de envíos', 'Error al enviar "' + descripcion, file=__file__)
         logger.debug(
-            'Gestor de envíos ' + opating_system_in_brackets() + ': Error al enviar "' + descripcion + '" a "' + destino + '"')
+            'Gestor de envíos ' + operating_system_in_brackets() +
+            ': Error al enviar "' + descripcion + '" a "' + destino + '"')
 
     return {'mail': mail, 'notification': notif}
 

@@ -136,7 +136,7 @@ class UserManager(list):
             elif launcher["type"] == "NotifyRun":
                 launcher = NotifyRunLauncher(launcher["url"])
             elif launcher['type'] == "Telegram":
-                launcher = TelegramLauncher(launcher['chat_id_or_code'])
+                launcher = TelegramLauncher(launcher['chat_id'])
             else:
                 raise InvalidLauncherError()
 

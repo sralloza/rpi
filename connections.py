@@ -63,7 +63,7 @@ class Connections:
         if destinations == 'broadcast' and file is None:
             raise NeccessaryArgumentError("Broadcast can't be used without the 'file' argument.")
 
-        servicio = ServiceManager.get(file) if file is not None else ServiceManager.UNKNOWN
+        service = ServiceManager.get(file) if file is not None else ServiceManager.UNKNOWN
 
         passports = {x: False for x in Connections.gu}
 
@@ -71,7 +71,7 @@ class Connections:
             # Si el user destinations es 'broadcast', se manda a todos los usuarios afiliados al servicio.
             if destinations == 'broadcast':
                 for username in Connections.gu:
-                    if servicio in username.servicios:
+                    if service in username.services:
                         passports[username] = True
 
             passports[Connections.gu.get_by_username(destinations)] = True
@@ -93,8 +93,8 @@ class Connections:
         for user in Connections.gu:
             if passports[user] is False:
                 continue
-            if servicio not in user.services and force is False:
-                logger.warning(f'User {user.username!r} is not registered in the service {servicio.nombre!r}')
+            if service not in user.services and force is False:
+                logger.warning(f'User {user.username!r} is not registered in the service {service.name!r}')
                 continue
 
             logger.debug(f'Starting connection thread of {user.username!r}')
@@ -160,7 +160,7 @@ class Connections:
         msg.attach(MIMEText(body, 'html'))
 
         if files is not None:
-            for i, file, realfilename in enumerate(files.items()):
+            for i, (file, realfilename) in enumerate(files.items()):
                 part = MIMEBase('application', "octet-stream")
                 if is_file is False:
                     part.set_payload(open(file, "rb").read())
