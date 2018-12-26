@@ -283,11 +283,11 @@ class Menu:
 class MenusManager(object):
     """Manages a list of menus."""
 
-    def __init__(self, url):
+    def __init__(self, url=None):
         self.logger = Logging.get(__file__, __name__)
         self.logger.debug('Starting menus manager')
 
-        self.url = url
+        self.url = url or "https://www.residenciasantiago.es/menus-1/"
         self.list = []
         self.opcodes = []
         self.downloader = Downloader()
