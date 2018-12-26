@@ -7,10 +7,10 @@ import platform
 import re
 
 from .dns import RpiDns
-from .exceptions import WrongLogType
+from .exceptions import WrongLogType, WrongCalledError
 
 
-class Logger:
+class Logger(logging.Logger):
     """Logger personal para todos los scripts."""
     DEFAULT_LEVEL_WINDOWS = logging.DEBUG
     DEFAULT_LEVEL_LINUX = logging.DEBUG
@@ -23,8 +23,19 @@ class Logger:
     CREATED = False
     SEPARATED = False
 
+    def __init__(self, name):
+
+        super().__init__(name)
+        raise WrongCalledError('Use get instead')
+
     @staticmethod
-    def get(archivo: str, nombre, windows_level: int = None, linux_level: int = None, windows_log=None, linux_log=None):
+    def silence(logger):
+        handler: logging.Handler = logger.handlers[-1]
+        handler.setLevel(logging.CRITICAL)
+
+    @staticmethod
+    def get(archivo: str, nombre, windows_level: int = None, linux_level: int = None, windows_log=None,
+            linux_log=None, setglobal=False):
         """Genera un logger."""
 
         hoy = datetime.datetime.today().strftime('%Y-%m-%d')
@@ -110,9 +121,11 @@ class Logger:
 
             if platform.system() == 'Windows':
                 logger.setLevel(windows_level)
-                # logging.basicConfig(level=windows_level, format=formato, datefmt=formato2, filename=filename)
+                if setglobal is True:
+                    logging.basicConfig(level=windows_level, format=formato, datefmt=formato2, filename=filename)
             else:
                 logger.setLevel(linux_level)
-                # logging.basicConfig(level=linux_level, format=formato, datefmt=formato2, filename=filename)
+                if setglobal is True:
+                    logging.basicConfig(level=linux_level, format=formato, datefmt=formato2, filename=filename)
 
         return logger

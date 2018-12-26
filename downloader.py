@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import requests
-
 from requests.exceptions import ConnectionError
 
 from .exceptions import DownloaderError
@@ -13,7 +12,12 @@ logger = Logger.get(__file__, __name__)
 class Downloader(requests.Session):
     """Downloader with retries control."""
 
-    def __init__(self, retries=10):
+    def __init__(self, retries=10, silenced=False):
+
+        global logger
+        if silenced is True:
+            Logger.silence(logger)
+
         self._retries = retries
         super().__init__()
 
