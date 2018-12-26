@@ -224,7 +224,7 @@ class ServicesManager(Enum):
             if servicio.value.corresponds_with(basepath):
                 return servicio.value
 
-        logger.warning(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
+        logger.warning(f"Unkown service: {basepath!r}")
         warn(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
         return ServicesManager.UNKNOWN.value
 
