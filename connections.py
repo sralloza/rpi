@@ -178,7 +178,10 @@ class Connections:
             for i, (file, realfilename) in enumerate(files.items()):
                 part = MIMEBase('application', "octet-stream")
                 if is_file is False:
-                    part.set_payload(open(file, "rb").read())
+                    try:
+                        part.set_payload(open(file, "rb").read())
+                    except FileNotFoundError:
+                        continue
                 else:
                     part.set_payload(file)
                 encoders.encode_base64(part)
