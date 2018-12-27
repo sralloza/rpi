@@ -230,7 +230,7 @@ class ServicesManager(Enum):
 
     @staticmethod
     def eval(algo):
-        """Does the convertion str -> Servicios."""
+        """Does the convertion str -> Service."""
 
         logger = Logging.get(__file__, __name__)
         logger.debug(f'Evaluating {algo!r}')

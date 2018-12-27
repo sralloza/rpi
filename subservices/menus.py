@@ -94,6 +94,11 @@ class MenusDatabaseManager:
                         'datetime' VARCHAR NOT NULL,
                         'link' VARCHAR PRIMARY KEY NOT NULL                        
                         )""")
+
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS "updates" (
+                        'datetime' PRIMARY KEY     
+                        )""")
+
         self.con.commit()
 
     def __contains__(self, item):
@@ -101,6 +106,24 @@ class MenusDatabaseManager:
             raise TypeError('Only links are accepted (str).')
 
         return item in self.extract_links()
+
+    # ------   OPERATIONS WITH UPDATES ------
+    def set_update(self):
+        now = datetime.datetime.today()
+        if self.get_update() == datetime.datetime.min:
+            self.cur.execute("insert into updates values(?)", (now.strftime('%y-%m-%d %H:%M:%S'),))
+        else:
+            self.cur.execute("update updates set datetime=?", (now.strftime('%y-%m-%d %H:%M:%S'),))
+        self.con.commit()
+        return True
+
+    def get_update(self):
+        self.cur.execute("select datetime from updates")
+        try:
+            result = datetime.datetime.strptime(self.cur.fetchone()[0], '%y-%m-%d %H:%M:%S')
+        except TypeError:
+            return datetime.datetime.min
+        return result
 
     # ------   OPERATIONS WITH LINKS   ------
     def save_link(self, link):
@@ -128,13 +151,11 @@ class MenusDatabaseManager:
     def save_menu(self, menu):
         """Saves a menu in the database."""
         datos = (
-            menu.id, menu.origin, menu.month_day, menu.month_as_number, menu.year, menu.dia_semana, menu.comida_p1,
-            menu.comida_p2,
-            menu.cena_p1, menu.cena_p2)
+            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str, menu.launch1,
+            menu.launch2, menu.dinner1, menu.dinner2)
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
         except IntegrityError:
-            self.logger.debug(f'Menu already exists: {menu!r}')
             return False
         self.logger.debug(f'Saved menu: {menu!r}')
         return True
@@ -175,6 +196,14 @@ class Menu:
     month_as_str: str = field(init=False)
 
     def __post_init__(self):
+
+        self.day = int(self.day)
+        self.year = int(self.year)
+
+        try:
+            self.month = int(self.month)
+        except ValueError:
+            self.month = MESES.index(str(self.month).lower()) - 1
 
         if not 1 <= self.month <= 12:
             raise InvalidMonthError(f"{self.month} is not a valid month [1-12]")
@@ -235,50 +264,6 @@ class Menu:
 
         return o
 
-    # def __repr__(self):
-    #     o = []
-    #     if self.day:
-    #         o.append(f"{repr(self.day)}")
-    #     if self.month:
-    #         o.append(f"{repr(self.month)}")
-    #     if self.year:
-    #         o.append(f"{repr(self.year)}")
-    #     if self.day_of_week_as_str:
-    #         o.append(f"day_of_week_as_str='{self.day_of_week_as_str}'")
-    #     if self.launch1:
-    #         o.append(f"launch1='{self.launch1}'")
-    #     if self.launch2:
-    #         o.append(f"launch2='{self.launch2}'")
-    #     if self.dinner1:
-    #         o.append(f"dinner1='{self.dinner1}'")
-    #     if self.dinner2:
-    #         o.append(f"dinner2='{self.dinner2}'")
-    #     return "Menu(" + ", ".join(o) + ')'
-
-    # def __lt__(self, other):
-    #     iself = None
-    #     iother = None
-    #     for i in range(len(MESES)):
-    #         if MESES[i] == self.month:
-    #             iself = i
-    #
-    #     for i in range(len(MESES)):
-    #         if MESES[i] == other.month:
-    #             iother = i
-    #
-    #     if iself is None:
-    #         raise InvalidMonthError("{} is not a month".format(self.month))
-    #     if iother is None:
-    #         raise InvalidMonthError("{} is not a month".format(other.month))
-    #
-    #     if iself != iother:
-    #         return iself < iother
-    #     else:
-    #         return self.day < other.dia_mes
-
-    # def __ge__(self, other):
-    #     return self.date >= other.date
-
 
 class MenusManager(object):
     """Manages a list of menus."""
@@ -288,6 +273,7 @@ class MenusManager(object):
         self.logger.debug('Starting menus manager')
 
         self.url = url or "https://www.residenciasantiago.es/menus-1/"
+        self.updated = False
         self.list = []
         self.opcodes = []
         self.downloader = Downloader()
@@ -328,10 +314,10 @@ class MenusManager(object):
         self.logger.debug('Loading menus from database')
         menus = self.database_manager.extract_menus_data()
         for row in menus:
-            _, _, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
+            _, origin, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
             menu = Menu(
                 day=day, month=month, year=year, day_of_week_as_str=day_of_wee_as_str,
-                launch1=launch1, launch2=launch2, dinner1=dinner1, dinner2=dinner2
+                launch1=launch1, launch2=launch2, dinner1=dinner1, dinner2=dinner2, origin=origin
             )
             self.list.append(menu)
 
@@ -351,22 +337,22 @@ class MenusManager(object):
         self.list.sort(**kwargs)
 
     def update(self, day, month, year, **kwargs):
-        possible_days = [x for x in self.list if x.dia_mes == day]
+        possible_days = [x for x in self.list if x.day == day]
 
         for x in possible_days:
-            if x.mes == month and x.ano == year:
+            if x.month == month and x.year == year:
                 index = self.list.index(x)
 
                 if "day_of_week_as_str" in kwargs:
-                    x.dia_semana = kwargs.pop("day_of_week_as_str")
+                    x.day_of_week_as_str = kwargs.pop("day_of_week_as_str")
                 if "launch1" in kwargs:
-                    x.comida_p1 = kwargs.pop("launch1")
+                    x.launch1 = kwargs.pop("launch1")
                 if "launch2" in kwargs:
-                    x.comida_p2 = kwargs.pop("launch2")
+                    x.launch2 = kwargs.pop("launch2")
                 if "dinner1" in kwargs:
-                    x.cena_p1 = kwargs.pop("dinner1")
+                    x.dinner1 = kwargs.pop("dinner1")
                 if "dinner2" in kwargs:
-                    x.cena_p2 = kwargs.pop("dinner2")
+                    x.dinner2 = kwargs.pop("dinner2")
                 self.list[index] = x
                 break
         else:
@@ -393,10 +379,18 @@ class MenusManager(object):
 
         if current_id in self:
             return self
+
+        if datetime.datetime.today() - self.database_manager.get_update() <= datetime.timedelta(seconds=60 * 20):
+            self.logger.debug('Web not processed - less than 20 minutes since last update')
+            return
+
+        self.logger.debug('Processing web - more than 20 minutes since last update')
+        self.updated = True
         self.download_and_process_web()
         self.save_to_database()
+        self.database_manager.set_update()
 
-        return self
+        return
 
     @staticmethod
     def load_csv(csvpath):

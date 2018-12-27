@@ -116,5 +116,5 @@ class CrontabManager(object):
         except AttributeError:
             username = user
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Returning username {username!r} from user {user!r}')
+        logger.debug(f'Returning username {username!r} from user {user!s}')
         return username

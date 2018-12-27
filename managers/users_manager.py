@@ -8,7 +8,7 @@ from json import JSONDecodeError
 
 from rpi.dns import RpiDns
 from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
-from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, TelegramLauncher
+from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, TelegramLauncher, InvalidLauncher
 from rpi.rpi_logging import Logging
 from .crontab_manager import CrontabManager
 from .services_manager import ServicesManager, RaspberryService
@@ -19,19 +19,23 @@ class User:
     """Represents a user."""
     username: str
     launcher: BaseLauncher
-    isactive: bool
+    is_active: bool
     email: str
+    is_superuser: bool
+    is_staff: bool
 
-    cronitems: list = field(init=False, hash=False)
-    isbanned: bool = field(init=False, repr=False)
+    cronitems: list = field(init=False, hash=False, repr=False)
+    is_banned: bool = field(init=False, repr=False)
 
-    def __init__(self, username, launcher, isactive, email, *services):
+    def __init__(self, username, launcher, is_active, is_superuser, is_staff, email, *services):
         self.username = username
         self.launcher = launcher
         self.cronitems = None
-        self.isactive = bool(isactive)
-        self.isbanned = not self.isactive
+        self.is_active = bool(is_active)
+        self.is_banned = not self.is_active
         self.email = email
+        self.is_superuser = bool(is_superuser)
+        self.is_staff = bool(is_staff)
 
         if isinstance(services, str):
             self.services = (services,)
@@ -108,9 +112,11 @@ class UsersManager(list):
         class TempUser:
             username: str
             launcher: BaseLauncher
-            isactive: bool
+            is_active: bool
             email: str
             services: tuple
+            is_superuser: bool
+            is_staff: bool
 
         self.path = RpiDns.get('sqlite.django')
 
@@ -120,7 +126,8 @@ class UsersManager(list):
 
         self.con = sqlite3.connect(self.path)
         self.cur = self.con.cursor()
-        self.cur.execute("select username, launcher, is_active, email, servicios from 'usuarios_usuario'")
+        self.cur.execute(
+            "select username, launcher, is_active, email, servicios, is_superuser, is_staff from 'usuarios_usuario'")
 
         content = self.cur.fetchall()
         self.con.close()
@@ -129,14 +136,16 @@ class UsersManager(list):
 
         for user in content:
             username = user.username
-            isbanned = user.isactive
+            is_active = user.is_active
             email = user.email
+            is_superuser = user.is_superuser
+            is_staff = user.is_staff
 
             services = ServicesManager.eval(user.services)
             try:
                 launcher = json.loads(user.launcher)
             except JSONDecodeError:
-                continue
+                launcher = {"type": 'Invalid'}
 
             if launcher["type"] == 'IFTTT':
                 launcher = IftttLauncher(launcher["url"])
@@ -145,17 +154,27 @@ class UsersManager(list):
             elif launcher['type'] == "Telegram":
                 launcher = TelegramLauncher(launcher['chat_id'])
             else:
-                raise InvalidLauncherError()
+                launcher = InvalidLauncher()
 
-            self.append(User(username, launcher, isbanned, email, services))
+            self.append(User(username, launcher, is_active, is_superuser, is_staff, email, services))
 
         self.logger.debug('Users loaded')
         return self
 
     def get_by_username(self, username):
-        self.logger.debug('Getting user by username - {username!r}')
+        self.logger.debug(f'Getting user by username - {username!r}')
         for user in self:
             if user.username == username:
                 return user
         self.logger.critical(f'Unknown username: {username!r}')
         raise UnrecognisedUsernameError(f'Unknown username: {username!r}')
+
+    def get_by_telegram_id(self, chat_id):
+        chat_id = int(chat_id)
+        self.logger.debug(f'Getting user by chat_id - {chat_id!r}')
+        for user in self:
+            if isinstance(user.launcher, TelegramLauncher):
+                if user.launcher.chat_id == chat_id:
+                    return user
+        self.logger.critical(f'Unknown chat_id: {chat_id!r}')
+        raise UnrecognisedUsernameError(f'Unknown chat_id: {chat_id!r}')

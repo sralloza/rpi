@@ -36,6 +36,10 @@ class BaseLauncher(object):
         raise NotImplementedError
 
 
+class InvalidLauncher(BaseLauncher):
+    pass
+
+
 class BaseExtendedLauncher(BaseLauncher):
     """Clase base para Launchers que permiten mensajes multilínea."""
 
@@ -82,7 +86,7 @@ class TelegramLauncher(BaseExtendedLauncher):
         chat_id_or_code = str(chat_id_or_code)
 
         if chat_id_or_code.isdigit():
-            self.chat_id = chat_id_or_code
+            self.chat_id = int(chat_id_or_code)
             self.code = None
         else:
             self.chat_id = None
