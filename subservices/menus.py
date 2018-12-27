@@ -4,7 +4,6 @@ import datetime
 import re
 import sqlite3
 import threading
-import time
 from dataclasses import dataclass, field
 from sqlite3 import IntegrityError
 from typing import List
@@ -26,11 +25,6 @@ DIAS = ("lunes", "martes", "miercoles", "jueves",
 TDIAS = ("lunes", "martes", "miércoles", "jueves",
          "viernes", "sábado", "domingo")
 EDIAS = ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')
-MESES_MAX = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-PARAMETROS = ("--tomorrow", "--t", "--find", "--f", "--yesterday", "--y")
-
-if int(time.strftime("%Y")) % 4 == 0:
-    MESES_MAX[1] = 29
 
 
 def extend_date(anything):
@@ -151,8 +145,8 @@ class MenusDatabaseManager:
     def save_menu(self, menu):
         """Saves a menu in the database."""
         datos = (
-            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str, menu.launch1,
-            menu.launch2, menu.dinner1, menu.dinner2)
+            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str, menu.lunch1,
+            menu.lunch2, menu.dinner1, menu.dinner2)
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
         except IntegrityError:
@@ -187,12 +181,12 @@ class Menu:
     year: int
 
     origin: str = 'auto'
-    day_of_week_as_str: str = None
-    launch1: str = None
-    launch2: str = None
+    lunch1: str = None
+    lunch2: str = None
     dinner1: str = None
     dinner2: str = None
 
+    day_of_week_as_str: str = field(init=False)
     month_as_str: str = field(init=False)
 
     def __post_init__(self):
@@ -210,9 +204,8 @@ class Menu:
 
         self.month_as_str = MESES[self.month - 1]
 
-        if self.day_of_week_as_str is None:
-            foo = datetime.datetime(self.year, self.month, self.day).strftime('%A').upper()
-            self.day_of_week_as_str = TDIAS[EDIAS.index(foo)].capitalize()
+        foo = datetime.datetime(self.year, self.month, self.day).strftime('%A').upper()
+        self.day_of_week_as_str = TDIAS[EDIAS.index(foo)].capitalize()
 
     @property
     def id(self):
@@ -240,18 +233,18 @@ class Menu:
             o += '<b>'
         if minimal is False:
             o += "{} de {} de {} ({}):".format(
-                self.day, self.month, self.year, self.day_of_week_as_str)
+                self.day, self.month_as_str, self.year, self.day_of_week_as_str)
         if html is True:
             o += '</b>'
 
         if minimal is False:
             o += '\n'
 
-        if arg == 'launch' or arg == 'default':
-            if self.launch1 is not None:
-                o += f'Comida: {self.launch1}'
-                if self.launch2 is not None:
-                    o += f' y {self.launch2}'
+        if arg == 'lunch' or arg == 'default':
+            if self.lunch1 is not None:
+                o += f'Comida: {self.lunch1}'
+                if self.lunch2 is not None:
+                    o += f' y {self.lunch2}'
 
         if arg == 'default':
             o += '\n'
@@ -314,10 +307,10 @@ class MenusManager(object):
         self.logger.debug('Loading menus from database')
         menus = self.database_manager.extract_menus_data()
         for row in menus:
-            _, origin, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
+            _, origin, day, month, year, day_of_wee_as_str, lunch1, lunch2, dinner1, dinner2 = row
             menu = Menu(
-                day=day, month=month, year=year, day_of_week_as_str=day_of_wee_as_str,
-                launch1=launch1, launch2=launch2, dinner1=dinner1, dinner2=dinner2, origin=origin
+                day=day, month=month, year=year,
+                lunch1=lunch1, lunch2=lunch2, dinner1=dinner1, dinner2=dinner2, origin=origin
             )
             self.list.append(menu)
 
@@ -343,12 +336,10 @@ class MenusManager(object):
             if x.month == month and x.year == year:
                 index = self.list.index(x)
 
-                if "day_of_week_as_str" in kwargs:
-                    x.day_of_week_as_str = kwargs.pop("day_of_week_as_str")
-                if "launch1" in kwargs:
-                    x.launch1 = kwargs.pop("launch1")
-                if "launch2" in kwargs:
-                    x.launch2 = kwargs.pop("launch2")
+                if "lunch1" in kwargs:
+                    x.lunch1 = kwargs.pop("lunch1")
+                if "lunch2" in kwargs:
+                    x.lunch2 = kwargs.pop("lunch2")
                 if "dinner1" in kwargs:
                     x.dinner1 = kwargs.pop("dinner1")
                 if "dinner2" in kwargs:
@@ -358,12 +349,10 @@ class MenusManager(object):
         else:
             menu = Menu(day, month, year)
 
-            if "day_of_week_as_str" in kwargs:
-                menu.day_of_week_as_str = kwargs.pop("day_of_week_as_str")
-            if "launch1" in kwargs:
-                menu.launch1 = kwargs.pop("launch1")
-            if "launch2" in kwargs:
-                menu.launch2 = kwargs.pop("launch2")
+            if "lunch1" in kwargs:
+                menu.lunch1 = kwargs.pop("lunch1")
+            if "lunch2" in kwargs:
+                menu.lunch2 = kwargs.pop("lunch2")
             if "dinner1" in kwargs:
                 menu.dinner1 = kwargs.pop("dinner1")
             if "dinner2" in kwargs:
@@ -394,7 +383,7 @@ class MenusManager(object):
 
     @staticmethod
     def load_csv(csvpath):
-        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;launch1;launch2...'"""
+        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;lunch1;lunch2...'"""
         self = object.__new__(MenusManager)
         self.__init__(None)
 
@@ -429,7 +418,7 @@ class MenusManager(object):
         contenido = copia
 
         for fila in contenido:
-            self.list.append(Menu(fila[0], fila[1], fila[2], launch1=fila[3], launch2=fila[4],
+            self.list.append(Menu(fila[0], fila[1], fila[2], lunch1=fila[3], lunch2=fila[4],
                                   dinner1=fila[5], dinner2=fila[6], origin='manual'))
 
         guardado = self.save_to_database()
@@ -453,7 +442,7 @@ class MenusManager(object):
 
         for e in lista:
             ano = int(e['year'])
-            mes = MESES[e['month_as_str'] - 1]
+            mes = int(e['mes'])
             dia = int(e['dia'])
             code = e['code']
             value = e['value']
@@ -469,16 +458,14 @@ class MenusManager(object):
             value = value.replace(" La ", " la ")
             value = value.replace(" Con ", " con ")
 
-            if code == "xx":
-                self.update(dia, mes, ano, dia_semana=value)
-            elif code == "L1":
-                self.update(dia, mes, ano, comida_p1=value)
+            if code == "L1":
+                self.update(dia, mes, ano, lunch1=value)
             elif code == "L2":
-                self.update(dia, mes, ano, comida_p2=value)
+                self.update(dia, mes, ano, lunch2=value)
             elif code == "D1":
-                self.update(dia, mes, ano, cena_p1=value)
+                self.update(dia, mes, ano, dinner1=value)
             elif code == "D2":
-                self.update(dia, mes, ano, cena_p2=value)
+                self.update(dia, mes, ano, dinner2=value)
 
         return self
 
@@ -674,7 +661,7 @@ class MenusManager(object):
         return
 
     def process_opcodes(self) -> List[dict]:
-        """Transforma una list del tipo [OPCODE] [VALOR] en una list con la información de cada opcode extraída en
+        """Transforma una list del tipo [OPCODE] [VALOR] en una lista con la información de cada opcode extraída en
         forma de diccionario."""
 
         self.logger.debug('Processing opcodes')
@@ -693,7 +680,7 @@ class MenusManager(object):
                 value = value.capitalize()
 
             d['year'] = ano
-            d['month_as_str'] = mes
+            d['mes'] = mes
             d['dia'] = dia
             d['code'] = code
             d['value'] = value
@@ -732,7 +719,7 @@ class MenusManager(object):
 
         if isinstance(destinations, str):
             usuario = gu.get_by_username(destinations).username
-            if isinstance(usuario.launcher, BaseMinimalLauncher):
+            if isinstance(usuario.luncher, BaseMinimalLauncher):
                 Connections.notify(title, mensaje_minimal, destinations=usuario, file=__file__)
             else:
                 Connections.notify(title, mensaje_normal, destinations=usuario, file=__file__)
@@ -742,7 +729,7 @@ class MenusManager(object):
                 usuarios_minimal = []
                 for nombre in destinations:
                     usuario = gu.get_by_username(nombre)
-                    if isinstance(usuario.launcher, BaseMinimalLauncher):
+                    if isinstance(usuario.luncher, BaseMinimalLauncher):
                         usuarios_minimal.append(usuario.username)
                     else:
                         usuarios_normales.append(usuario.username)
