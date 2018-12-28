@@ -222,6 +222,9 @@ class Menu:
         """Genera la id de un menú."""
         return int(f'{ano:04d}{mes:02d}{dia_mes:02d}')
 
+    def __lt__(self, other):
+        return self.id < other.id
+
     def __str__(self, arg='default', html=False, minimal=False):
 
         if minimal is True and arg == 'default':
@@ -703,12 +706,10 @@ class MenusManager(object):
 
     @staticmethod
     def notify(message, destinations, show='default'):
+        import warnings
+        warnings.warn('This method should not be used, will be deleted in the next version', DeprecationWarning)
         title = 'Menús Resi'
         gu = UsersManager()
-
-        if isinstance(destinations, str):
-            if destinations.lower() == 'all':
-                destinations = gu.usernames
 
         if isinstance(message, Menu):
             mensaje_normal = message.__str__(arg=show)
@@ -719,7 +720,7 @@ class MenusManager(object):
 
         if isinstance(destinations, str):
             usuario = gu.get_by_username(destinations).username
-            if isinstance(usuario.luncher, BaseMinimalLauncher):
+            if isinstance(usuario.launcher, BaseMinimalLauncher):
                 Connections.notify(title, mensaje_minimal, destinations=usuario, file=__file__)
             else:
                 Connections.notify(title, mensaje_normal, destinations=usuario, file=__file__)
@@ -729,7 +730,7 @@ class MenusManager(object):
                 usuarios_minimal = []
                 for nombre in destinations:
                     usuario = gu.get_by_username(nombre)
-                    if isinstance(usuario.luncher, BaseMinimalLauncher):
+                    if isinstance(usuario.launcher, BaseMinimalLauncher):
                         usuarios_minimal.append(usuario.username)
                     else:
                         usuarios_normales.append(usuario.username)

@@ -37,7 +37,12 @@ class BaseLauncher(object):
 
 
 class InvalidLauncher(BaseLauncher):
-    pass
+
+    def fire(self, title, message):
+        raise NotImplementedError
+
+    def to_json(self):
+        raise NotImplementedError
 
 
 class BaseExtendedLauncher(BaseLauncher):

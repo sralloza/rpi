@@ -120,7 +120,7 @@ class Connections:
         # TODO: TRANSLATE INTO ENGLISH
 
         try:
-            if user.isactive is False:
+            if user.is_active is False:
                 self.logger.warning(f'BANNED USER: {user.username!r}')
                 return False
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from json import JSONDecodeError
 
 from rpi.dns import RpiDns
-from rpi.exceptions import UnrecognisedUsernameError, InvalidLauncherError
+from rpi.exceptions import UnrecognisedUsernameError
 from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, TelegramLauncher, InvalidLauncher
 from rpi.rpi_logging import Logging
 from .crontab_manager import CrontabManager
