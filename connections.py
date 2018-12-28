@@ -27,11 +27,12 @@ debug_lock = Lock()
 
 class Connections:
     """Manages every outgoing connection."""
-    gu = UsersManager()
     DISABLE = platform.system() == 'Windows'
 
     def __init__(self):
         self.logger = Logging.get(__file__, __name__)
+        self.gu = UsersManager()
+
         self.lock = Lock()
         self.errores = []
         self._downloader = Downloader()
@@ -66,32 +67,32 @@ class Connections:
 
         service = ServicesManager.get(file) if file is not None else ServicesManager.UNKNOWN
 
-        passports = {x: False for x in Connections.gu}
+        passports = {x: False for x in self.gu}
 
         if isinstance(destinations, str):
             # Si el user destinations es 'broadcast', se manda a todos los usuarios afiliados al servicio.
             if destinations == 'broadcast':
-                for username in Connections.gu:
+                for username in self.gu:
                     if service in username.services:
                         passports[username] = True
 
-            passports[Connections.gu.get_by_username(destinations)] = True
+            passports[self.gu.get_by_username(destinations)] = True
 
         else:
             try:
                 for persona in destinations:
-                    passports[Connections.gu.get_by_username(persona)] = True
+                    passports[self.gu.get_by_username(persona)] = True
             except TypeError:
                 self.logger.critical(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
                 raise TypeError(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
 
         # Checking validations of usernames (check that each username is registered at the database)
         for user in passports:
-            if user.username not in Connections.gu.usernames:
+            if user.username not in self.gu.usernames:
                 raise UnrecognisedUsernameError(f'Uknown username: {user.username!r}')
 
         threads = []
-        for user in Connections.gu:
+        for user in self.gu:
             if passports[user] is False:
                 continue
             if service not in user.services and force is False:
@@ -124,7 +125,7 @@ class Connections:
                 self.logger.warning(f'BANNED USER: {user.username!r}')
                 return False
 
-            if Connections.DISABLE is True:
+            if self.DISABLE is True:
                 self.logger.warning(f'DISABLED NOTIFICATIONS - {user.username!r}')
                 return False
             else:

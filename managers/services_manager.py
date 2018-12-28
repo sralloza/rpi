@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Tuple, Union
 from warnings import warn
 
-from rpi.exceptions import UnrecognisedServiceWarning, UnexpectedBehaviourWarning, MissingOptionsError, \
+from rpi.exceptions import UnexpectedBehaviourWarning, MissingOptionsError, \
     InvalidOptionError
 from rpi.rpi_logging import Logging
 
@@ -212,7 +212,7 @@ class ServicesManager(Enum):
     def get(basepath):
 
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Trying to identify service from {basepath!r}')
+        logger.debug(f'Trying to identify service from {basepath!r}', {'show': False})
 
         if isinstance(basepath, RaspberryService):
             return basepath
@@ -225,7 +225,7 @@ class ServicesManager(Enum):
                 return servicio.value
 
         logger.warning(f"Unkown service: {basepath!r}")
-        warn(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
+        # warn(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
         return ServicesManager.UNKNOWN.value
 
     @staticmethod
@@ -233,7 +233,7 @@ class ServicesManager(Enum):
         """Does the convertion str -> Service."""
 
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Evaluating {algo!r}')
+        logger.debug(f'Evaluating {algo!r}', {'show': False})
         try:
             data = eval(algo, globals(), ServicesManager.__dict__)
         except SyntaxError:
@@ -249,7 +249,8 @@ class ServicesManager(Enum):
                 data[i] = data[i].value
             except AttributeError:
                 warn(f"Something may have gone wrong (data={data!r})", UnexpectedBehaviourWarning)
+                logger.warning(f"Something may have gone wrong (data={data!r})")
 
-        logger.debug(f'Evaluated: {tuple(data)!r}')
+        logger.debug(f'Evaluated: {tuple(data)!r}', {'show': False})
 
         return tuple(data)

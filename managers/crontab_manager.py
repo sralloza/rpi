@@ -97,7 +97,7 @@ class CrontabManager(object):
         result = list(self.cron.find_comment(username))
 
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Returning list of cronitems by user {username!r}')
+        logger.debug(f'Returning list of cronitems by user {username!r}', {'show': False})
 
         return result
 
@@ -106,7 +106,7 @@ class CrontabManager(object):
         logger = Logging.get(__file__, __name__)
         result = hash(str(vars(job)))
 
-        logger.debug(f'Returning hash {result!r} from job {job!r}')
+        logger.debug(f'Returning hash {result!r} from job {job!r}', {'show': False})
         return result
 
     @staticmethod
@@ -116,5 +116,5 @@ class CrontabManager(object):
         except AttributeError:
             username = user
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Returning username {username!r} from user {user!s}')
+        logger.debug(f'Returning username {username!r} from user {user!s}', {'show': False})
         return username

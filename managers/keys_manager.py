@@ -24,7 +24,7 @@ class KeysManager(object):
 
         result = tuple(self.dict.keys())
 
-        self.logger.debug(f'Returning list of keys - {result!r}')
+        self.logger.debug(f'Returning list of keys - {result!r}', {'show': False})
 
         return result
 
@@ -50,7 +50,7 @@ class KeysManager(object):
         self = object.__new__(KeysManager)
         self.__init__()
 
-        self.logger.debug(f'Searching key for {key!r}')
+        self.logger.debug(f'Searching key for {key!r}', {'show': False})
 
         if key not in self.keys():
             self.logger.critical(f'Key {key!r} not found')

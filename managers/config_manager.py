@@ -31,7 +31,7 @@ class ConfigManager(object):
         return item in self.config
 
     def load(self):
-        self.logger.debug('Loading config')
+        # self.logger.debug('Loading config')
         try:
             with open(self.path, 'rt', encoding='utf-8') as fh:
                 data = fh.read()
@@ -77,7 +77,7 @@ class ConfigManager(object):
 
         valor = self[config]
 
-        self.logger.debug(f'Returning config value {valor!r} from key {config!r}')
+        # self.logger.debug(f'Returning config value {valor!r} from key {config!r}')
 
         return valor
 
@@ -110,6 +110,6 @@ class ConfigManager(object):
 
         result = tuple(self.config.keys())
 
-        self.logger.debug(f'Returning config keys - {result}')
+        self.logger.debug(f'Returning config keys - {result}', {'show': False})
 
         return result
