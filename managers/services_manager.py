@@ -212,7 +212,7 @@ class ServicesManager(Enum):
     def get(basepath):
 
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Trying to identify service from {basepath!r}', {'show': False})
+        logger.debug(f'Trying to identify service from {basepath!r}', enable=False)
 
         if isinstance(basepath, RaspberryService):
             return basepath
@@ -233,7 +233,7 @@ class ServicesManager(Enum):
         """Does the convertion str -> Service."""
 
         logger = Logging.get(__file__, __name__)
-        logger.debug(f'Evaluating {algo!r}', {'show': False})
+        logger.debug(f'Evaluating {algo!r}', enable=False)
         try:
             data = eval(algo, globals(), ServicesManager.__dict__)
         except SyntaxError:
@@ -251,6 +251,6 @@ class ServicesManager(Enum):
                 warn(f"Something may have gone wrong (data={data!r})", UnexpectedBehaviourWarning)
                 logger.warning(f"Something may have gone wrong (data={data!r})")
 
-        logger.debug(f'Evaluated: {tuple(data)!r}', {'show': False})
+        logger.debug(f'Evaluated: {tuple(data)!r}', enable=False)
 
         return tuple(data)

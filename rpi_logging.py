@@ -9,30 +9,34 @@ from .dns import RpiDns
 from .exceptions import WrongCalledError
 
 
-class CustomFilter(logging.Filter):
+class RpiLogger(logging.Logger):
+    def __init__(self, name):
+        super().__init__(name)
 
-    def filter(self, record: logging.LogRecord):
-        # print(repr(record), type(record), record)
+    def log(self, level, msg, *args, enable=True, **kwargs):
+        if enable is True:
+            super().log(level, msg, *args, **kwargs)
 
-        if isinstance(record.args, dict):
-            try:
-                if record.args['show'] is False:
-                    return False
-            except KeyError:
-                return True
+    def info(self, msg, *args, enable=True, **kwargs):
+        return self.log(logging.INFO, msg, *args, enable=enable, **kwargs)
 
-        elif isinstance(record.args, tuple):
-            for row in record.args:
-                try:
-                    if row['show'] is False:
-                        return False
-                except (KeyError, TypeError):
-                    continue
+    def debug(self, msg, *args, enable=True, **kwargs):
+        return self.log(logging.DEBUG, msg, *args, enable=enable, **kwargs)
 
-        return True
+    def warning(self, msg, *args, enable=True, **kwargs):
+        return self.log(logging.WARNING, msg, *args, enable=enable, **kwargs)
+
+    def error(self, msg, *args, enable=True, **kwargs):
+        return self.log(logging.ERROR, msg, *args, enable=enable, **kwargs)
+
+    def critical(self, msg, *args, enable=True, **kwargs):
+        return self.log(logging.CRITICAL, msg, *args, enable=enable, **kwargs)
 
 
-class Logging(logging.Logger):
+logging.setLoggerClass(RpiLogger)
+
+
+class Logging(object):  # (logging.Logger):
     """Logging personal para todos los scripts."""
     DEFAULT_LEVEL_WINDOWS = logging.DEBUG
     DEFAULT_LEVEL_LINUX = logging.DEBUG
@@ -71,8 +75,9 @@ class Logging(logging.Logger):
         handler.setLevel(logging.CRITICAL)
 
     @staticmethod
-    def get(archivo: str, nombre: str, windows_level: int = None, linux_level: int = None, setglobal=False):
-        """Genera un logger."""
+    def get(archivo: str, nombre: str, windows_level: int = None, linux_level: int = None,
+            setglobal=False) -> RpiLogger:
+        """Returns a custom logger."""
 
         warning = False
 
@@ -87,7 +92,8 @@ class Logging(logging.Logger):
         windows_level = Logging.DEFAULT_LEVEL_WINDOWS if windows_level is None else windows_level
         linux_level = Logging.DEFAULT_LEVEL_LINUX if linux_level is None else linux_level
 
-        logger = logging.getLogger(name)
+        logger: RpiLogger = logging.getLogger(name)
+
         if not logger.handlers:
             # Prevent logging from propagating to the root logger
             logger.propagate = 0
@@ -99,9 +105,6 @@ class Logging(logging.Logger):
             filehandler = logging.FileHandler(Logging.LOG_FILENAME, 'a', 'utf-8')
             filehandler.setFormatter(formatter)
             logger.addHandler(filehandler)
-
-            my_filter = CustomFilter('my-custom-filter')
-            logger.addFilter(my_filter)
 
             if platform.system() == 'Windows':
                 logger.setLevel(windows_level)

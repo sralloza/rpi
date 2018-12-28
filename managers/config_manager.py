@@ -110,6 +110,6 @@ class ConfigManager(object):
 
         result = tuple(self.config.keys())
 
-        self.logger.debug(f'Returning config keys - {result}', {'show': False})
+        self.logger.debug(f'Returning config keys - {result}', enable=False)
 
         return result

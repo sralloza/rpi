@@ -80,13 +80,13 @@ class UsersManager(list):
     @property
     def usernames(self):
         result = tuple([x.username for x in self])
-        self.logger.debug(f'Returning list of usernames - {result!r}', {'show': False})
+        self.logger.debug(f'Returning list of usernames - {result!r}', enable=False)
         return result
 
     @property
     def emails(self):
         result = tuple([x.email for x in self])
-        self.logger.debug(f'Returning list of emails - {result!r}', {'show': False})
+        self.logger.debug(f'Returning list of emails - {result!r}', enable=False)
         return result
 
     def save_launcher(self, username):
@@ -107,7 +107,7 @@ class UsersManager(list):
     def load(self):
         """Carga todos los usuarios."""
 
-        self.logger.debug('Loading users', {'show': False})
+        self.logger.debug('Loading users', enable=False)
 
         @dataclass
         class TempUser:
@@ -159,11 +159,11 @@ class UsersManager(list):
 
             self.append(User(username, launcher, is_active, is_superuser, is_staff, email, services))
 
-        self.logger.debug('Users loaded', {'show': False})
+        self.logger.debug('Users loaded', enable=False)
         return self
 
     def get_by_username(self, username):
-        self.logger.debug(f'Getting user by username - {username!r}', {'show': False})
+        self.logger.debug(f'Getting user by username - {username!r}', enable=False)
         for user in self:
             if user.username == username:
                 return user
@@ -172,7 +172,7 @@ class UsersManager(list):
 
     def get_by_telegram_id(self, chat_id):
         chat_id = int(chat_id)
-        self.logger.debug(f'Getting user by chat_id - {chat_id!r}', {'show': False})
+        self.logger.debug(f'Getting user by chat_id - {chat_id!r}', enable=False)
         for user in self:
             if isinstance(user.launcher, TelegramLauncher):
                 if user.launcher.chat_id == chat_id:
