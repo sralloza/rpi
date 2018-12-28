@@ -13,13 +13,13 @@ def sender_main(resource_id=None, keys=False):
     automatic = False
 
     if resource_id is not None:
-        if resource_id in (1, 2, 3, 4, 5, 6):
+        if resource_id in (1, 2, 3, 4, 5):
             automatic = True
             logger.debug(f'Automatic sending request: {resource_id}')
 
     if keys is True:
-        print(' 1 |  2   |    3     |   4   |    5   |    6   ')
-        print('CV | Logs | Rpi Mail | Menús | Maildb | Log Hoy')
+        print(' 1 |     2    |   3   |    4   |    5   ')
+        print('CV | Rpi Mail | Menús | Maildb | Log Hoy')
         return
 
     mail_message = '<h2><span style="color: #339966; font-family: cambria; font-size: 35px;">Petición aceptada: '
@@ -28,11 +28,10 @@ def sender_main(resource_id=None, keys=False):
         print('\n\n')
         print('--------BASES DE DATOS---------')
         print('1. Virtual Campus History')
-        print('2. Logs')
-        print('3. Raspberry Mail')
-        print('4. Residence Menus')
-        print('5. Raspberry Mail Data Base')
-        print('6. Today\'s log: ' + datetime.datetime.today().strftime('(%Y-%m-%d)'))
+        print('2. Raspberry Mail')
+        print('3. Residence Menus')
+        print('4. Raspberry Mail Data Base')
+        print('5. Today\'s log: ' + datetime.datetime.today().strftime('(%Y-%m-%d)'))
         print('-------------------------------')
 
         resource_id = int(input('Insert resource\'s id:  '))
@@ -51,23 +50,19 @@ def sender_main(resource_id=None, keys=False):
         file = RpiDns.get('sqlite.vcs')
 
     elif resource_id == 2:
-        description = 'Logs'
-        file = RpiDns.get('sqlite.log')
-
-    elif resource_id == 3:
         description = 'Raspberry Mail'
         file = {RpiDns.get('textdb.mail-pi'): 'raspberry_mail_pi.txt',
                 RpiDns.get('textdb.mail-www-data'): 'raspberry_mail_www_data.txt'}
 
-    elif resource_id == 4:
+    elif resource_id == 3:
         description = 'Menús Residencia Santiago'
         file = RpiDns.get('sqlite.menus_resi')
 
-    elif resource_id == 5:
+    elif resource_id == 4:
         description = 'Raspberry Mail Database'
         file = RpiDns.get('sqlite.raspberry_mail')
 
-    elif resource_id == 6:
+    elif resource_id == 5:
         today = datetime.datetime.today().strftime('%Y-%m-%d')
         description = 'Log ' + today
         path = RpiDns.get('folder.log')
