@@ -70,7 +70,7 @@ def sender_main(resource_id=None, keys=False):
         if path.endswith('/') is False:
             path += '/'
 
-        file = {path + today + '.log': today + '.log.txt'}
+        file = {Logging.LOG_FILENAME: today + '.log.txt'}
 
     else:
         logger.critical(f'{resource_id} is not a valid resource id')
@@ -84,6 +84,7 @@ def sender_main(resource_id=None, keys=False):
     mail_message += about
     mail_message += '</span></h2><p>&nbsp;</p>'
 
+    logger.debug('Sending file %r to %r', file, destino)
     result_email = Connections.send_email(destino, about, mail_message, files=file, origin='Rpi-Sender')
     if result_email is True:
         # result_notif = Connections.notify('Shipping manager', 'Request accepted:\n' + about, file=__file__)

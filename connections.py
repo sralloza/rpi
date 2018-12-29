@@ -140,7 +140,7 @@ class Connections:
         # TODO: INCLUDE DOCSTRING
 
         logger = Logging.get(__file__, __name__)
-        logger.debug('Sending mail %r to %r,', subject, destinations)
+        logger.debug('Sending mail %r to %r', subject, destinations)
 
         if isinstance(destinations, list) or isinstance(destinations, tuple):
             destinations = ', '.join(destinations)
@@ -185,6 +185,7 @@ class Connections:
                     try:
                         part.set_payload(open(file, "rb").read())
                     except FileNotFoundError:
+                        logger.error('File not found: %r', file)
                         continue
                 else:
                     part.set_payload(file)

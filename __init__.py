@@ -4,7 +4,7 @@ import platform
 
 # __VERSION__ = '2018.11.15'
 
-__VERSION__ = 'new_services-alfa-1.19'
+__VERSION__ = 'new_services-alfa-1.20'
 ADMIN_EMAIL = 'sralloza@gmail.com'
 
 
