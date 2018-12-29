@@ -139,6 +139,9 @@ class Connections:
     def send_email(destinations, subject, message, files=None, is_file=False, origin='Rpi'):
         # TODO: INCLUDE DOCSTRING
 
+        logger = Logging.get(__file__, __name__)
+        logger.debug('Sending mail %r to %r,', subject, destinations)
+
         if isinstance(destinations, list) or isinstance(destinations, tuple):
             destinations = ', '.join(destinations)
 

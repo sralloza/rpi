@@ -51,8 +51,8 @@ def sender_main(resource_id=None, keys=False):
 
     elif resource_id == 2:
         description = 'Raspberry Mail'
-        file = {RpiDns.get('textdb.mail-pi'): 'raspberry_mail_pi.txt',
-                RpiDns.get('textdb.mail-www-data'): 'raspberry_mail_www_data.txt'}
+        file = {RpiDns.get('textdb.mail-pi'): 'raspberry_mail.txt',
+                RpiDns.get('textdb.mail-www-data'): 'raspberry_mail2.txt'}
 
     elif resource_id == 3:
         description = 'Menús Residencia Santiago'

@@ -1,36 +1,110 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import io
 import logging
 import os
 import platform
+import sys
+import traceback
 
 from .dns import RpiDns
 from .exceptions import WrongCalledError
+
+# Copied from logging.__init__.py
+if hasattr(sys, '_getframe'):
+    # noinspection PyProtectedMember
+    def currentframe():
+        return sys._getframe(3)
+else:
+    # noinspection PyBroadException
+    def currentframe():
+        try:
+            raise Exception
+        except Exception:
+            return sys.exc_info()[2].tb_frame.f_back
+
+_srcfile = __file__.lower()
 
 
 class RpiLogger(logging.Logger):
     def __init__(self, name):
         super().__init__(name)
 
+    def findCaller(self, stack_info=False):
+        """Copied from logging.__init__.py."""
+
+        f = currentframe()
+
+        if f is not None:
+            f = f.f_back
+        rv = "(unknown file)", 0, "(unknown function)", None
+        while hasattr(f, "f_code"):
+            co = f.f_code
+            filename = os.path.normcase(co.co_filename)
+            if filename == _srcfile:
+                f = f.f_back
+                continue
+            sinfo = None
+            if stack_info:
+                sio = io.StringIO()
+                sio.write('Stack (most recent call last):\n')
+                traceback.print_stack(f, file=sio)
+                sinfo = sio.getvalue()
+                if sinfo[-1] == '\n':
+                    sinfo = sinfo[:-1]
+                sio.close()
+            rv = (co.co_filename, f.f_lineno, co.co_name, sinfo)
+            break
+        return rv
+
     def log(self, level, msg, *args, enable=True, **kwargs):
-        if enable is True:
-            super().log(level, msg, *args, **kwargs)
+
+        if not isinstance(level, int):
+            raise TypeError("level must be an integer")
+        if self.isEnabledFor(level) and enable is True:
+            self._log(level, msg, args, **kwargs)
+
+    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False):
+        """Copied from logging.__init__.py."""
+
+        sinfo = None
+        if _srcfile:
+
+            try:
+                fn, lno, func, sinfo = self.findCaller(stack_info)
+            except ValueError:
+                fn, lno, func = "(unknown file)", 0, "(unknown function)"
+        else:
+            fn, lno, func = "(unknown file)", 0, "(unknown function)"
+        if exc_info:
+            if isinstance(exc_info, BaseException):
+                exc_info = (type(exc_info), exc_info, exc_info.__traceback__)
+            elif not isinstance(exc_info, tuple):
+                exc_info = sys.exc_info()
+        record = self.makeRecord(self.name, level, fn, lno, msg, args,
+                                 exc_info, func, extra, sinfo)
+        self.handle(record)
 
     def info(self, msg, *args, enable=True, **kwargs):
-        return self.log(logging.INFO, msg, *args, enable=enable, **kwargs)
+        if self.isEnabledFor(logging.INFO):
+            self.log(logging.INFO, msg, *args, enable=enable, **kwargs)
 
     def debug(self, msg, *args, enable=True, **kwargs):
-        return self.log(logging.DEBUG, msg, *args, enable=enable, **kwargs)
+        if self.isEnabledFor(logging.DEBUG):
+            self.log(logging.DEBUG, msg, *args, enable=enable, **kwargs)
 
     def warning(self, msg, *args, enable=True, **kwargs):
-        return self.log(logging.WARNING, msg, *args, enable=enable, **kwargs)
+        if self.isEnabledFor(logging.WARNING):
+            self.log(logging.WARNING, msg, *args, enable=enable, **kwargs)
 
     def error(self, msg, *args, enable=True, **kwargs):
-        return self.log(logging.ERROR, msg, *args, enable=enable, **kwargs)
+        if self.isEnabledFor(logging.ERROR):
+            self.log(logging.ERROR, msg, *args, enable=enable, **kwargs)
 
     def critical(self, msg, *args, enable=True, **kwargs):
-        return self.log(logging.CRITICAL, msg, *args, enable=enable, **kwargs)
+        if self.isEnabledFor(logging.CRITICAL):
+            self.log(logging.CRITICAL, msg, *args, enable=enable, **kwargs)
 
 
 logging.setLoggerClass(RpiLogger)
