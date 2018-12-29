@@ -138,7 +138,7 @@ class MenusDatabaseManager:
         self.cur.execute("SELECT link FROM links")
         links = [x[0] for x in self.cur.fetchall()]
 
-        self.logger.debug('Extracting links from database')
+        self.logger.debug('Extracting links from database', enable=False)
         return links
 
     # ------   OPERATIONS WITH MENUS   ------
@@ -225,11 +225,11 @@ class Menu:
     def __lt__(self, other):
         return self.id < other.id
 
-    def __str__(self, arg='default', html=False, minimal=False):
+    def __str__(self, arg='all', html=False, minimal=False):
 
-        if minimal is True and arg == 'default':
+        if minimal is True and arg == 'all':
             logger = Logging.get(__file__, __name__)
-            logger.warning('Too much information (minimal=True, arg=\'default\')')
+            logger.warning('Too much information (minimal=True, arg=\'all\')')
 
         o = ''
         if html is True:

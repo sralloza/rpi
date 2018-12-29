@@ -103,7 +103,7 @@ class RaspberryService(object):
 
     def generate_command(self, **kwargs):
         kwargs.update(**RaspberryService.DEFAULT)
-        kwargs.update(RUTA=self.path)
+        kwargs.update(PATH=self.path)
 
         if 'options' in kwargs:
             kwargs['OPTIONS'] = kwargs['options']
@@ -135,10 +135,10 @@ class ServicesManager(Enum):
         ),
         options=(
             Option('hora', 'time', include=False),
-            Option('hoy', 'radio'),
-            Option('manana', 'radio'),
-            Option('pasado', 'radio'),
-            Option('todos', 'radio')
+            Option('today', 'radio'),
+            Option('tomorrow', 'radio'),
+            Option('day-after', 'radio'),
+            Option('all', 'radio')
         ),
         path='/home/pi/scripts/aemet.py',
         ispublic=True,
@@ -151,9 +151,9 @@ class ServicesManager(Enum):
         ),
         options=(
             Option('hora', 'time', include=False),
-            Option('comida', 'radio'),
-            Option('cena', 'radio'),
-            Option('default', 'radio')
+            Option('launch', 'radio'),
+            Option('dinner', 'radio'),
+            Option('all', 'radio')
         ),
         path='/home/pi/scripts/menus_resi.py',
         ispublic=True,
@@ -163,7 +163,7 @@ class ServicesManager(Enum):
         name='VCS',
         command=Command(
             # todo: crear command
-            template='{PYTHON} {RUTA} {OPTIONS}',
+            template='{PYTHON} {PATH} {OPTIONS}',
             path='/home/pi/scripts/vcs.py',
         ),
         options=(
