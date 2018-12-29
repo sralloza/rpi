@@ -185,9 +185,34 @@ class ServicesManager(Enum):
         extra_paths=(
             '/home/pi/scripts/backup.py', '/home/pi/scripts/ngrok.py', '/home/pi/scripts/ngrok2.py',
             '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py', '/home/pi/scripts/gestor_mail.py',
-            '/home/pi/scripts/controller.py', '/home/pi/scripts/telegram_bot.py', '/home/pi/scripts/controller.py',
             '/home/pi/pull.sh',
         ),
+        isabstract=True
+    )
+
+    TELEGRAM_BOT = RaspberryService(
+        name='TELEGRAM_BOT',
+        command=Command(
+            template=None,
+            path=None,
+            notify=False
+        ),
+        options=(),
+        path='/home/pi/scripts/telegram_bot.py',
+        extra_paths=(),
+        isabstract=True
+    )
+
+    CONTROLLER = RaspberryService(
+        name='CONTROLLER',
+        command=Command(
+            template=None,
+            path=None,
+            notify=False
+        ),
+        options=(),
+        path='/home/pi/scripts/controller.py',
+        extra_paths=(),
         isabstract=True
     )
 
