@@ -10,10 +10,11 @@ from rpi.rpi_logging import Logging
 
 
 class Option(object):
-    def __init__(self, name, option_type, include=True):
+    def __init__(self, name, option_type, include=True, es=None):
         self.name = name
         self.type = option_type
         self.include = include
+        self.es = es
 
 
 class Command(object):
@@ -75,7 +76,19 @@ class RaspberryService(object):
 
     @property
     def options_names(self):
-        return [x.name for x in self.options]
+        return tuple(self.option_names_en + self.option_names_es)
+
+    @property
+    def option_names_en(self):
+        return tuple(self.option_namespace.keys())
+
+    @property
+    def option_names_es(self):
+        return tuple([x for x in self.option_namespace.values() if x is not None])
+
+    @property
+    def option_namespace(self):
+        return {option.name: option.es for option in self.options}
 
     @property
     def filenames_with_ext(self):
@@ -134,11 +147,11 @@ class ServicesManager(Enum):
             preoption='-',
         ),
         options=(
-            Option('hora', 'time', include=False),
-            Option('today', 'radio'),
-            Option('tomorrow', 'radio'),
-            Option('day-after', 'radio'),
-            Option('all', 'radio')
+            Option('time', 'time', es='hora', include=False),
+            Option('today', 'radio', es='hoy'),
+            Option('tomorrow', 'radio', es='mañana'),
+            Option('day-after', 'radio', es='pasado mañana'),
+            Option('all', 'radio', es='todo')
         ),
         path='/home/pi/scripts/aemet.py',
         ispublic=True,
@@ -150,10 +163,10 @@ class ServicesManager(Enum):
             path='/home/pi/scripts/menus_resi.py',
         ),
         options=(
-            Option('hora', 'time', include=False),
-            Option('launch', 'radio'),
-            Option('dinner', 'radio'),
-            Option('all', 'radio')
+            Option('time', 'time', es='hora', include=False),
+            Option('launch', 'radio', es='comida'),
+            Option('dinner', 'radio', es='cena'),
+            Option('all', 'radio', es='todo')
         ),
         path='/home/pi/scripts/menus_resi.py',
         ispublic=True,
@@ -167,7 +180,7 @@ class ServicesManager(Enum):
             path='/home/pi/scripts/vcs.py',
         ),
         options=(
-            Option('hora', 'time', include=False),
+            Option('time', 'time', es='hora', include=False),
         ),
         path='/home/pi/scripts/vcs.py',
         data=('campus_username', 'campus_password'),

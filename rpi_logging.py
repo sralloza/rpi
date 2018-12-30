@@ -150,13 +150,16 @@ class Logging(object):  # (logging.Logger):
 
     @staticmethod
     def get(archivo: str, nombre: str, windows_level: int = None, linux_level: int = None,
-            setglobal=False) -> RpiLogger:
+            setglobal=False, force_principal=False) -> RpiLogger:
         """Returns a custom logger."""
 
         warning = False
 
-        if nombre == '__main__':
-            Logging.ROYAL = os.path.basename(archivo)[:os.path.basename(archivo).rfind('.')]
+        if nombre == '__main__' or force_principal:
+            if force_principal:
+                Logging.ROYAL = nombre
+            else:
+                Logging.ROYAL = os.path.basename(archivo)[:os.path.basename(archivo).rfind('.')]
             name = '<' + Logging.ROYAL + '>'
         else:
             if Logging.ROYAL is None:

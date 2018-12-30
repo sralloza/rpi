@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+import os
+import re
+from typing import Union, List
 
 from crontab import CronTab, CronItem
 
 from rpi import operating_system
 from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
+from rpi.managers.services_manager import ServicesManager
 from rpi.rpi_logging import Logging
 
 
@@ -118,3 +122,37 @@ class CrontabManager(object):
         logger = Logging.get(__file__, __name__)
         logger.debug(f'Returning username {username!r} from user {user!s}', enable=False)
         return username
+
+    @staticmethod
+    def job_to_str(job: CronItem, admin=False):
+        command_pattern = re.compile(r'(?P<PYTHON>[\w/.]+)\s(?P<SERVICE_PATH>[\w/.]+)\s(?P<EXTRA_ARGS>[\w\-\s]+)')
+
+        service = ServicesManager.get(command_pattern.search(job.command).groupdict()['SERVICE_PATH'])
+
+        options: Union[List[str], str] = os.path.basename(job.command).split(' ')[1:]
+
+        try:
+            options.remove(job.comment)
+            options.remove('-notify')
+        except ValueError:
+            pass
+
+        for i in range(len(options)):
+            options[i] = options[i].lstrip(service.command.preoption)
+
+        i = 0
+        while i < len(options):
+            if options[i] not in service.options_names:
+                options.remove(options[i])
+                i = 0
+            else:
+                if options[i] in service.option_names_en:
+                    options[i] = service.option_namespace[options[i]]
+                i += 1
+
+        options = ' '.join(options)
+
+        if admin is False:
+            return service, options
+
+        return service, options, job.comment
