@@ -124,8 +124,11 @@ class Logging(object):  # (logging.Logger):
     today = datetime.datetime.today()
 
     LOGS_GENERAL_FOLDER = RpiDns.get('folder.logs')
+
     LOGS_YEAR_FOLDER = os.path.join(LOGS_GENERAL_FOLDER, str(today.year))
     LOGS_MONTH_FOLDER = os.path.join(LOGS_YEAR_FOLDER, str(today.month))
+    LOGS_APACHE_ACCESS = '/var/log/apache2/access.log'
+    LOGS_APACHE_ERRROR = '/var/log/apache2/error.log'
 
     if os.path.isdir(LOGS_GENERAL_FOLDER) is False:
         os.mkdir(LOGS_GENERAL_FOLDER)

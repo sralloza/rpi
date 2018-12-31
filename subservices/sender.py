@@ -70,7 +70,12 @@ def sender_main(resource_id=None, keys=False):
         if path.endswith('/') is False:
             path += '/'
 
-        file = {Logging.LOG_FILENAME: today + '.log.txt'}
+        file = {
+            Logging.LOG_FILENAME: today + '.log.txt',
+            Logging.LOG_DJANGO_FILENAME: today + '.django.log.txt',
+            Logging.LOGS_APACHE_ACCESS: today + 'apache.access.log.txt',
+            Logging.LOGS_APACHE_ERRROR: today + 'apache.error.log.txt'
+        }
 
     else:
         logger.critical(f'{resource_id} is not a valid resource id')
