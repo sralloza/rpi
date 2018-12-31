@@ -137,6 +137,7 @@ class Logging(object):  # (logging.Logger):
         os.mkdir(LOGS_MONTH_FOLDER)
 
     LOG_FILENAME = os.path.join(LOGS_MONTH_FOLDER, str(today.day) + '.log')
+    LOG_DJANGO_FILENAME = os.path.join(LOGS_MONTH_FOLDER, str(today.day) + '.django.log')
 
     def __init__(self, name):
 

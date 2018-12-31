@@ -149,11 +149,11 @@ class UsersManager(list):
                 launcher = {"type": 'Invalid'}
 
             if launcher["type"] == 'IFTTT':
-                launcher = IftttLauncher(launcher["url"])
+                launcher = IftttLauncher(launcher["config"])
             elif launcher["type"] == "NotifyRun":
-                launcher = NotifyRunLauncher(launcher["url"])
+                launcher = NotifyRunLauncher(launcher["config"])
             elif launcher['type'] == "Telegram":
-                launcher = TelegramLauncher(launcher['chat_id'])
+                launcher = TelegramLauncher(launcher['config'])
             else:
                 launcher = InvalidLauncher()
 
