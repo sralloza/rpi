@@ -6,6 +6,9 @@ from requests.exceptions import ConnectionError
 from .exceptions import DownloaderError
 from .rpi_logging import Logging
 
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 '
+                         '(KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
+
 
 class Downloader(requests.Session):
     """Downloader with retries control."""
