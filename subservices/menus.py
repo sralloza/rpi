@@ -79,8 +79,8 @@ class MenusDatabaseManager:
                          month INTEGER NOT NULL,
                          year INTEGER NOT NULL,
                          day_week VARCHAR,
-                         lunch1 VARCHAR,
-                         lunch2 VARCHAR,
+                         launch1 VARCHAR,
+                         launch2 VARCHAR,
                          dinner1 VARCHAR,
                          dinner2 VARCHAR)""")
 
@@ -145,8 +145,8 @@ class MenusDatabaseManager:
     def save_menu(self, menu):
         """Saves a menu in the database."""
         datos = (
-            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str, menu.lunch1,
-            menu.lunch2, menu.dinner1, menu.dinner2)
+            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str, menu.launch1,
+            menu.launch2, menu.dinner1, menu.dinner2)
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
         except IntegrityError:
@@ -181,8 +181,8 @@ class Menu:
     year: int
 
     origin: str = 'auto'
-    lunch1: str = None
-    lunch2: str = None
+    launch1: str = None
+    launch2: str = None
     dinner1: str = None
     dinner2: str = None
 
@@ -243,16 +243,16 @@ class Menu:
         if minimal is False:
             o += '\n'
 
-        if arg == 'lunch' or arg == 'default':
-            if self.lunch1 is not None:
-                o += f'Comida: {self.lunch1}'
-                if self.lunch2 is not None:
-                    o += f' y {self.lunch2}'
+        if arg == 'launch' or arg == 'all':
+            if self.launch1 is not None:
+                o += f'Comida: {self.launch1}'
+                if self.launch2 is not None:
+                    o += f' y {self.launch2}'
 
-        if arg == 'default':
+        if arg == 'all':
             o += '\n'
 
-        if arg == 'dinner' or arg == 'default':
+        if arg == 'dinner' or arg == 'all':
             if self.dinner1 is not None:
                 o += f'Cena: {self.dinner1}'
                 if self.dinner2 is not None:
@@ -310,10 +310,10 @@ class MenusManager(object):
         self.logger.debug('Loading menus from database')
         menus = self.database_manager.extract_menus_data()
         for row in menus:
-            _, origin, day, month, year, day_of_wee_as_str, lunch1, lunch2, dinner1, dinner2 = row
+            _, origin, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
             menu = Menu(
                 day=day, month=month, year=year,
-                lunch1=lunch1, lunch2=lunch2, dinner1=dinner1, dinner2=dinner2, origin=origin
+                launch1=launch1, launch2=launch2, dinner1=dinner1, dinner2=dinner2, origin=origin
             )
             self.list.append(menu)
 
@@ -339,10 +339,10 @@ class MenusManager(object):
             if x.month == month and x.year == year:
                 index = self.list.index(x)
 
-                if "lunch1" in kwargs:
-                    x.lunch1 = kwargs.pop("lunch1")
-                if "lunch2" in kwargs:
-                    x.lunch2 = kwargs.pop("lunch2")
+                if "launch1" in kwargs:
+                    x.launch1 = kwargs.pop("launch1")
+                if "launch2" in kwargs:
+                    x.launch2 = kwargs.pop("launch2")
                 if "dinner1" in kwargs:
                     x.dinner1 = kwargs.pop("dinner1")
                 if "dinner2" in kwargs:
@@ -352,10 +352,10 @@ class MenusManager(object):
         else:
             menu = Menu(day, month, year)
 
-            if "lunch1" in kwargs:
-                menu.lunch1 = kwargs.pop("lunch1")
-            if "lunch2" in kwargs:
-                menu.lunch2 = kwargs.pop("lunch2")
+            if "launch1" in kwargs:
+                menu.launch1 = kwargs.pop("launch1")
+            if "launch2" in kwargs:
+                menu.launch2 = kwargs.pop("launch2")
             if "dinner1" in kwargs:
                 menu.dinner1 = kwargs.pop("dinner1")
             if "dinner2" in kwargs:
@@ -386,7 +386,7 @@ class MenusManager(object):
 
     @staticmethod
     def load_csv(csvpath):
-        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;lunch1;lunch2...'"""
+        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;launch1;launch2...'"""
         self = object.__new__(MenusManager)
         self.__init__(None)
 
@@ -421,7 +421,7 @@ class MenusManager(object):
         contenido = copia
 
         for fila in contenido:
-            self.list.append(Menu(fila[0], fila[1], fila[2], lunch1=fila[3], lunch2=fila[4],
+            self.list.append(Menu(fila[0], fila[1], fila[2], launch1=fila[3], launch2=fila[4],
                                   dinner1=fila[5], dinner2=fila[6], origin='manual'))
 
         guardado = self.save_to_database()
@@ -462,9 +462,9 @@ class MenusManager(object):
             value = value.replace(" Con ", " con ")
 
             if code == "L1":
-                self.update(dia, mes, ano, lunch1=value)
+                self.update(dia, mes, ano, launch1=value)
             elif code == "L2":
-                self.update(dia, mes, ano, lunch2=value)
+                self.update(dia, mes, ano, launch2=value)
             elif code == "D1":
                 self.update(dia, mes, ano, dinner1=value)
             elif code == "D2":
@@ -705,7 +705,7 @@ class MenusManager(object):
         return p
 
     @staticmethod
-    def notify(message, destinations, show='default'):
+    def notify(message, destinations, show='all'):
         import warnings
         warnings.warn('This method should not be used, will be deleted in the next version', DeprecationWarning)
         title = 'Menús Resi'
