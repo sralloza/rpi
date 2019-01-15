@@ -154,7 +154,8 @@ class Logging(object):  # (logging.Logger):
 
     @staticmethod
     def get(archivo: str, nombre: str, windows_level: int = None, linux_level: int = None,
-            setglobal=False, force_principal=False) -> RpiLogger:
+            setglobal=False, force_principal=False, custom_filename=None, custom_format=None,
+            custom_datefmt=None) -> RpiLogger:
         """Returns a custom logger."""
 
         warning = False
@@ -181,9 +182,10 @@ class Logging(object):  # (logging.Logger):
 
             # logging_format = '[%(asctime)s] %(levelname)s - %(name)s - %(module)s:%(lineno)s: %(message)s'
 
-            formatter = logging.Formatter(Logging.LOGGING_FORMAT, Logging.TIME_FORMAT)
+            formatter = logging.Formatter(custom_format or Logging.LOGGING_FORMAT,
+                                          custom_datefmt or Logging.TIME_FORMAT)
 
-            filehandler = logging.FileHandler(Logging.LOG_FILENAME, 'a', 'utf-8')
+            filehandler = logging.FileHandler(custom_filename or Logging.LOG_FILENAME, 'a', 'utf-8')
             filehandler.setFormatter(formatter)
             logger.addHandler(filehandler)
 
@@ -193,8 +195,9 @@ class Logging(object):  # (logging.Logger):
                 logger.setLevel(linux_level)
 
             if setglobal is True:
-                logging.basicConfig(level=windows_level, format=Logging.LOGGING_FORMAT, datefmt=Logging.TIME_FORMAT,
-                                    filename=Logging.LOG_FILENAME)
+                logging.basicConfig(level=windows_level, format=custom_format or Logging.LOGGING_FORMAT,
+                                    datefmt=custom_datefmt or Logging.TIME_FORMAT,
+                                    filename=custom_filename or Logging.LOG_FILENAME)
 
         if warning is True and Logging.WARNED is False:
             logger.warning('No se ha declarado un logger principal')
