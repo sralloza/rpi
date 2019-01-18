@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+"""Manager of output files throw email."""
+
 import datetime
 import logging
 import os
@@ -10,95 +14,129 @@ from rpi.dns import RpiDns
 from rpi.exceptions import NeccessaryArgumentError
 
 
-def sender_main(resource_id=None, keys=False):
+def handle_request(resource_id: int)->tuple:
+    """Gets the files and description according to resource id.
+
+    Args:
+        resource_id (int): id of the resource.
+
+    Returns:
+         tuple: files and description.
+
+    """
+    logger = logging.getLogger(__name__)
+    if resource_id == 1:
+        files, description = get_vcs_history()
+    elif resource_id == 2:
+        files, description = get_mail()
+    elif resource_id == 3:
+        files, description = get_menus_database()
+    elif resource_id == 4:
+        files, description = get_info_logs()
+    else:
+        logger.critical('%s is not a valid resource id', resource_id)
+        raise TypeError(f'{resource_id} is not a valid resource id')
+
+    return files, description
+
+
+def print_info():
+    """Prints the resources with its ids."""
+    print('\n\n')
+    print('--------BASES DE DATOS---------')
+    print('1. Virtual Campus History')
+    print('2. Raspberry Mail')
+    print('3. Residence Menus')
+    print('4. Today\'s log: ' + datetime.datetime.today().strftime('(%Y-%m-%d)'))
+    print('-------------------------------')
+
+
+def get_vcs_history():
+    """Gets the info for the virtual campus scanner database."""
+    description = 'Base de datos de links del Campus Virtual de la UVa'
+    files = RpiDns.get('sqlite.vcs')
+    return files, description
+
+
+def get_mail():
+    """Gets the info for the raspberry mail (users pi and www-data)."""
+    description = 'Raspberry Mail'
+    files = {RpiDns.get('textdb.mail-pi'): 'raspberry_mail.txt',
+             RpiDns.get('textdb.mail-www-data'): 'raspberry_mail2.txt'}
+    return files, description
+
+
+def get_menus_database():
+    """Gets the info for the menus database."""
+    description = 'Menús Residencia Santiago'
+    files = RpiDns.get('sqlite.menus_resi')
+    return files, description
+
+
+def get_info_logs():
+    """Gets the info for all the logs files."""
+    today = datetime.datetime.today().strftime('%Y-%m-%d')
+    description = 'Log ' + today
+
+    files = {
+        LoggingInfo.LOGS_APACHE_ACCESS: today + '.apache.access.log.txt',
+        LoggingInfo.LOGS_APACHE_ERRROR: today + '.apache.error.log.txt'
+    }
+
+    for filename in os.listdir(LoggingInfo.LOGS_DAY_FOLDER):
+        files[filename] = filename + '.txt'
+
+    return files, description
+
+
+def sender(resource_id=None, keys=False):
+    """Main function."""
     logger = logging.getLogger(__name__)
     automatic = False
 
     if resource_id is not None:
-        if resource_id in (1, 2, 3, 4, 5):
+        if resource_id in (1, 2, 3, 4):
             automatic = True
-            logger.debug(f'Automatic sending request: {resource_id}')
+            logger.debug('Automatic sending request: %s', resource_id)
 
     if keys is True:
-        print(' 1 |     2    |   3   |    4   |    5   ')
-        print('CV | Rpi Mail | Menús | Maildb | Log Hoy')
-        return
+        print(' 1 |     2    |   3   |    4   ')
+        print('CV | Rpi Mail | Menús | Log Hoy')
+        return 0
 
     mail_message = '<h2><span style="color: #339966; font-family: cambria; font-size: 35px;">' \
                    'Petición aceptada: '
 
     if automatic is False:
-        print('\n\n')
-        print('--------BASES DE DATOS---------')
-        print('1. Virtual Campus History')
-        print('2. Raspberry Mail')
-        print('3. Residence Menus')
-        print('4. Raspberry Mail Data Base')
-        print('5. Today\'s log: ' + datetime.datetime.today().strftime('(%Y-%m-%d)'))
-        print('-------------------------------')
+        print_info()
 
         resource_id = int(input('Insert resource\'s id:  '))
-        destino = input('Destiny: ')
+        destiny = input('Destiny: ')
     else:
-        destino = ''
-    if destino == '':
-        destino = ADMIN_EMAIL
+        destiny = ''
+
+    destiny = destiny if destiny else ADMIN_EMAIL
 
     if automatic is False:
-        logger.debug(f'Manual sending request: {resource_id} to {destino!r}')
+        logger.debug('Manual sending request: %s to %r', resource_id, destiny)
 
     about = 'Enviada '
-    if resource_id == 1:
-        description = 'Base de datos de links del Campus Virtual de la UVa'
-        file = RpiDns.get('sqlite.vcs')
+    files, description = handle_request(resource_id)
 
-    elif resource_id == 2:
-        description = 'Raspberry Mail'
-        file = {RpiDns.get('textdb.mail-pi'): 'raspberry_mail.txt',
-                RpiDns.get('textdb.mail-www-data'): 'raspberry_mail2.txt'}
-
-    elif resource_id == 3:
-        description = 'Menús Residencia Santiago'
-        file = RpiDns.get('sqlite.menus_resi')
-
-    elif resource_id == 4:
-        description = 'Raspberry Mail Database'
-        file = RpiDns.get('sqlite.raspberry_mail')
-
-    elif resource_id == 5:
-        today = datetime.datetime.today().strftime('%Y-%m-%d')
-        description = 'Log ' + today
-        path = RpiDns.get('folder.log')
-
-        if path.endswith('/') is False:
-            path += '/'
-
-        file = {
-            LoggingInfo.LOGS_APACHE_ACCESS: today + '.apache.access.log.txt',
-            LoggingInfo.LOGS_APACHE_ERRROR: today + '.apache.error.log.txt'
-        }
-
-        for filename in os.listdir(LoggingInfo.LOGS_DAY_FOLDER):
-            file[filename] = filename + '.txt'
-
-    else:
-        logger.critical(f'{resource_id} is not a valid resource id')
-        raise TypeError(f'{resource_id} is not a valid resource id')
-
-    if file is None:
-        logger.critical("'file' argument can't be None")
-        raise NeccessaryArgumentError("'file' argument can't be None")
+    if files is None:
+        logger.critical("'files' argument can't be None")
+        raise NeccessaryArgumentError("'files' argument can't be None")
 
     about += description
     mail_message += about
     mail_message += '</span></h2><p>&nbsp;</p>'
 
-    logger.debug('Sending file %r to %r', file, destino)
-    result_email = Connections.send_email(destino, about, mail_message, files=file,
+    logger.debug('Sending file %r to %r', files, destiny)
+    result_email = Connections.send_email(destiny, about, mail_message, files=files,
                                           origin='Rpi-Sender')
     if result_email is True:
-        logger.debug(f'Shipping Manager {osib()}: sent {description} to {destino}')
+        logger.debug('Shipping Manager %s: sent %s to %s', osib(), description, destiny)
     else:
-        logger.debug(f'Shipping Manager {osib()}: error sending {description} to {destino}')
+        logger.debug('Shipping Manager %s: error sending %s to %s', osib(), description, destiny)
 
     return {'mail': result_email}
