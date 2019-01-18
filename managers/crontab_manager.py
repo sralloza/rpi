@@ -12,7 +12,6 @@ from crontab import CronTab, CronItem
 from rpi import operating_system
 from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
 from rpi.managers.services_manager import ServicesManager
-from rpi.managers.users_manager import User
 
 
 class CrontabManager:
@@ -30,7 +29,7 @@ class CrontabManager:
         return iter(self.cron)
 
     @staticmethod
-    def new(command: str, user: Union[User, str], hour: int, minutes: int):
+    def new(command: str, user: str, hour: int, minutes: int):
         """Creates a new task for crontab.
 
         Args:
@@ -163,7 +162,7 @@ class CrontabManager:
         return result
 
     @staticmethod
-    def user_to_username(user: Union[User, str]) -> str:
+    def user_to_username(user: str) -> str:
         """Returns the username from a user.
 
         Args:
