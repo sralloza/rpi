@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Parser for aemet weather forecast webpage."""
+
 import datetime
 import logging
 from dataclasses import dataclass, field
@@ -32,11 +34,11 @@ class WeatherRegistry:
     storm_prob: float
     announcements: str = field(repr=False)
     info: str = field(repr=False)
-    _args: tuple = field(init=False, repr=False)
+    args: tuple = field(init=False, repr=False)
 
 
 def __post_init__(self):
-    self._args = (
+    self.args = (
         self.day_of_week, self.day, self.hour, self.temperature, self.thermal_sensation,
         self.wind_direction, self.wind_speed, self.wind_speed_max, self.rain_mm, self.snow_mm,
         self.rel_hum, self.rain_prob, self.snow_prob,
@@ -75,18 +77,19 @@ class WeatherRecordsManager:
 
     @classmethod
     def valladolid(cls):
-        return cls.procesar(
+        """Processes the aemet web page of Valladolid."""
+        return cls.process(
             url='http://www.aemet.es/es/eltiempo/prediccion/'
                 'municipios/horas/tabla/valladolid-id47186')
 
     @classmethod
-    def procesar(cls, url):
+    def process(cls, url):
         """Processes an AEMET web page to extract the hour prevision."""
 
         self = cls.__new__(cls)
         self.__init__()
 
-        self.logger.debug(f'Processing web - {url!r}')
+        self.logger.debug('Processing aemet web - %r', url)
 
         try:
             with Downloader() as downloader:
@@ -95,8 +98,8 @@ class WeatherRecordsManager:
             self.logger.critical('Aemet download error')
             return None
 
-        s = Soup(principal_page.text, "html.parser")
-        rows = s.findAll(
+        soup = Soup(principal_page.text, "html.parser")
+        rows = soup.findAll(
             "tr", {"class": "fila_hora cabecera_niv2"})
 
         day_of_week = "Error"
@@ -115,7 +118,7 @@ class WeatherRecordsManager:
             elements = row.split(" ")
             n_espacios = elements.count('')
 
-            for counter in range(n_espacios):
+            for _ in range(n_espacios):
                 elements.remove('')
 
             try:
@@ -142,25 +145,25 @@ class WeatherRecordsManager:
                 elements.insert(12, snow_prob)
                 elements.insert(13, storm_prob)
 
-            foo = ""
-            for h in range(14, len(elements)):
-                if h != 14:
-                    foo += ' '
-                foo += elements[h]
-            elements[14] = foo
+            temp = ""
+            for element in range(14, len(elements)):
+                if element != 14:
+                    temp += ' '
+                temp += elements[element]
+            elements[14] = temp
 
-            for h in range(len(elements) - 15):
+            for element in range(len(elements) - 15):
                 elements.pop()
 
             elements.append(info)
 
-            for foo in (1, 2, 3, 4, 6, 7, 10):
-                elements[foo] = int(elements[foo])
+            for temp in (1, 2, 3, 4, 6, 7, 10):
+                elements[temp] = int(elements[temp])
 
-            for foo in (8, 9):
-                if elements[foo].lower() in ["lp", "ip"]:
-                    elements[foo] = 0.0
-                elements[foo] = float(elements[foo])
+            for temp in (8, 9):
+                if elements[temp].lower() in ["lp", "ip"]:
+                    elements[temp] = 0.0
+                elements[temp] = float(elements[temp])
 
             self.list.append(WeatherRegistry(*elements))
 
@@ -178,7 +181,7 @@ class WeatherRecordsManager:
                 mm_sum += register.snow_mm
                 counter += 1
 
-        self.logger.debug(f'milimiters for {date}: {mm_sum}, {counter}')
+        self.logger.debug('milimiters for %s: %s, %s', date, mm_sum, counter)
 
         if index is True:
             return mm_sum, counter
@@ -204,7 +207,7 @@ class WeatherRecordsManager:
         if percentage_mean > 100:
             percentage_mean = 100.0
 
-        self.logger.debug(f'Percentage mean for {date}: {percentage_mean}, {counter}')
+        self.logger.debug('Percentage mean for %s: %s, %s', date, percentage_mean, counter)
 
         if index is True:
             return percentage_mean, counter
