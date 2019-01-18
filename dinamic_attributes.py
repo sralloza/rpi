@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Only contains a class with dinamic attributes."""
+
 
 class DinamicAttributes:
     """Class with dynamically modifiable properties."""
@@ -27,15 +29,17 @@ class DinamicAttributes:
 
     @property
     def dict(self):
+        """Returns self.__dict__."""
         return self.__dict__
 
     def __str__(self):
         return str(self.dict)
 
     def __repr__(self):
-        foo = 'DinamicAttributes('
+        output = 'DinamicAttributes('
         keys, values = self.dict.keys(), self.dict.values()
         joined = [[x, y] for x, y in zip(keys, values)]
-        pairs = [f"{k[0]}={k[1]}" if type(k[1]) != str else f"{k[0]}='{k[1]}'" for k in joined]
-        foo += ", ".join(pairs)
-        return foo + ')'
+        pairs = [f"{k[0]}={k[1]}" if not isinstance(k[1], str) else f"{k[0]}='{k[1]}'" for k in
+                 joined]
+        output += ", ".join(pairs)
+        return output + ')'
