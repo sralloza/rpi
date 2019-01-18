@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Main executable"""
+
 import argparse
 import sys
 
@@ -11,15 +13,17 @@ from .managers.users_manager import UsersManager
 configure_logging(called_from=__file__, use_logs_folder=True)
 
 
-def report_error(error):
+def report_error(error: str):
+    """Sends an email with an error."""
     Connections.send_email(ADMIN_EMAIL, 'ERROR REPORTADO', error, origin='RpiWeb Error Reporter')
 
 
 def main():
+    """Main function."""
     if len(sys.argv) <= 1:
         sys.argv.append('-h')
 
-    gu = UsersManager()
+    user_manager = UsersManager()
 
     parser = argparse.ArgumentParser(description='Rpi', prog='rpi')
 
@@ -35,7 +39,7 @@ def main():
     notificar = subparser.add_parser('notificar')
     notificar.add_argument('titulo')
     notificar.add_argument('mensaje')
-    notificar.add_argument('destinos', nargs='+', choices=gu.usernames + ('broadcast',))
+    notificar.add_argument('destinos', nargs='+', choices=user_manager.usernames + ('broadcast',))
 
     email = subparser.add_parser('email')
     email.add_argument('destino')
@@ -52,19 +56,19 @@ def main():
 
     try:
         if opt['ver'] is False and opt['eliminar'] is None and opt['usernames'] is False:
-            print(gu.usernames)
+            print(user_manager.usernames)
             return
     except KeyError:
         pass
 
     if 'ver' in opt:
         if opt['ver'] is True:
-            print(gu)
+            print(user_manager)
             return
 
     if 'usernames' in opt:
         if opt['usernames'] is True:
-            print(gu.usernames)
+            print(user_manager.usernames)
             return
 
     if 'titulo' in opt:
