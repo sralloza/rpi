@@ -7,7 +7,7 @@ import os
 from rpi.dns import RpiDns
 
 
-class LoggingInfo(object):
+class LoggingInfo:
     """Abstract class to store logs folders and file paths."""
 
     DEFAULT_LEVEL_WINDOWS = logging.DEBUG
