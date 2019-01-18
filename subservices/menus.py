@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # TODO: TRANSLATE HOLE FILE AND IMPROVE CODE
 import datetime
+import logging
 import re
 import sqlite3
 import threading
@@ -11,12 +12,14 @@ from typing import List
 from bs4 import BeautifulSoup as Soup
 
 from rpi.connections import Connections
+from rpi.custom_logging import configure_logging
 from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import InvalidMonthError, InvalidDayError, DownloaderError
 from rpi.launcher import BaseMinimalLauncher
 from rpi.managers.users_manager import UsersManager
-from rpi.rpi_logging import Logging
+
+configure_logging(called_from=__file__, use_logs_folder=True)
 
 MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
          "agosto", "septiembre", "octubre", "noviembre", "diciembre")
@@ -67,7 +70,7 @@ class MenusDatabaseManager:
     """Gestor de la base de datos de menús de la Residencia Santiago."""
 
     def __init__(self):
-        self.logger = Logging.get(__file__, __name__)
+        self.logger = logging.getLogger(__name__)
         self.logger.debug('Starting database manager')
         self.con = sqlite3.connect(RpiDns.get('sqlite.menus_resi'))
         self.cur = self.con.cursor()
@@ -138,14 +141,15 @@ class MenusDatabaseManager:
         self.cur.execute("SELECT link FROM links")
         links = [x[0] for x in self.cur.fetchall()]
 
-        self.logger.debug('Extracting links from database', enable=False)
+        self.logger.debug('Extracting links from database')
         return links
 
     # ------   OPERATIONS WITH MENUS   ------
     def save_menu(self, menu):
         """Saves a menu in the database."""
         datos = (
-            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str, menu.launch1,
+            menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str,
+            menu.launch1,
             menu.launch2, menu.dinner1, menu.dinner2)
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
@@ -228,7 +232,7 @@ class Menu:
     def __str__(self, arg='all', html=False, minimal=False):
 
         if minimal is True and arg == 'all':
-            logger = Logging.get(__file__, __name__)
+            logger = logging.getLogger(__name__)
             logger.warning('Too much information (minimal=True, arg=\'all\')')
 
         o = ''
@@ -265,7 +269,7 @@ class MenusManager(object):
     """Manages a list of menus."""
 
     def __init__(self, url=None):
-        self.logger = Logging.get(__file__, __name__)
+        self.logger = logging.getLogger(__name__)
         self.logger.debug('Starting menus manager')
 
         self.url = url or "https://www.residenciasantiago.es/menus-1/"
@@ -279,14 +283,16 @@ class MenusManager(object):
         # 1. Detects "DÍA: 28 DE JUNIO DE 2018 (JUEVES)".
         # 2. Detects "28/06/2018".
         # 3. Detects "27. junio 2018" (unused).
-        # 4. Detects when "1ER PLATO" is splitted from the dinner itself (or the 2nd) [I dont understand this...]
+        # 4. Detects when "1ER PLATO" is splitted from the dinner itself (or the 2nd)
         # 5. Detects when there are no dinner plates, and takes until dessert.
 
-        self.pattern1 = re.compile(r'DÍA:\s\d{2}\sDE\s[a-zA-Z]{4,10}\sDE\s\d{4}\s\(\w{5,9}\)', re.IGNORECASE)
+        self.pattern1 = re.compile(r'DÍA:\s\d{2}\sDE\s[a-zA-Z]{4,10}\sDE\s\d{4}\s\(\w{5,9}\)',
+                                   re.IGNORECASE)
         self.pattern2 = re.compile(r'\d{2}/\d{2}/\d{4}', re.IGNORECASE)
         # self.pattern3 = re.compile(r'\d{2}\.\s[a-zA-Z]{4,10}\s\d{4}', re.IGNORECASE)
         self.pattern4 = re.compile(r'((1ER|2º)\sPLATO:\${3}[\w\s]*)', re.IGNORECASE)
-        self.pattern5 = re.compile(r'(?<=CENA:\${3})(?!(1ER))[\w\s.:,;$]+(?=\${3}POSTRE)', re.IGNORECASE)
+        self.pattern5 = re.compile(r'(?<=CENA:\${3})(?!(1ER))[\w\s.:,;$]+(?=\${3}POSTRE)',
+                                   re.IGNORECASE)
 
         self.opcodes_lock = threading.Lock()
         self.sqlite_lock = threading.Lock()
@@ -372,7 +378,8 @@ class MenusManager(object):
         if current_id in self:
             return self
 
-        if datetime.datetime.today() - self.database_manager.get_update() <= datetime.timedelta(seconds=60 * 20):
+        if datetime.datetime.today() - self.database_manager.get_update() <= datetime.timedelta(
+                seconds=60 * 20):
             self.logger.debug('Web not processed - less than 20 minutes since last update')
             return
 
@@ -386,7 +393,7 @@ class MenusManager(object):
 
     @staticmethod
     def load_csv(csvpath):
-        """Genera los menús a partid de un archivo csv separado por ; Ej: 31;12;2018;launch1;launch2...'"""
+        """Gets the menus by a csv file splitted by ;. Example: 31;12;18;launch1;launch2..."""
         self = object.__new__(MenusManager)
         self.__init__(None)
 
@@ -397,7 +404,8 @@ class MenusManager(object):
 
         contenido = [x.split(';') for x in contenido]
         contenido = [[elemento.strip() for elemento in fila] for fila in contenido]
-        cont1 = ['a', 'al', 'la', 'ante', 'bajo', 'con', 'contra', 'de', 'del', 'desde', 'durante', 'en', 'hacia',
+        cont1 = ['a', 'al', 'la', 'ante', 'bajo', 'con', 'contra', 'de', 'del', 'desde', 'durante',
+                 'en', 'hacia',
                  'hasta', 'mediante', 'o', 'para', 'por', 'según', 'sin', 'sobre', 'tras', 'y']
         titled = [' ' + x.title() + ' ' for x in cont1]
         cont1 = [' ' + x + ' ' for x in cont1]
@@ -707,7 +715,8 @@ class MenusManager(object):
     @staticmethod
     def notify(message, destinations, show='all'):
         import warnings
-        warnings.warn('This method should not be used, will be deleted in the next version', DeprecationWarning)
+        warnings.warn('This method should not be used, will be deleted in the next version',
+                      DeprecationWarning)
         title = 'Menús Resi'
         gu = UsersManager()
 
@@ -734,8 +743,10 @@ class MenusManager(object):
                         usuarios_minimal.append(usuario.username)
                     else:
                         usuarios_normales.append(usuario.username)
-                Connections.notify(title, mensaje_normal, destinations=usuarios_normales, file=__file__)
-                Connections.notify(title, mensaje_minimal, destinations=usuarios_minimal, file=__file__)
+                Connections.notify(title, mensaje_normal, destinations=usuarios_normales,
+                                   file=__file__)
+                Connections.notify(title, mensaje_minimal, destinations=usuarios_minimal,
+                                   file=__file__)
             except TypeError:
                 raise TypeError(
                     '"destinations" debe ser str o iterable, no ' + type(destinations).__name__)

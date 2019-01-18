@@ -87,7 +87,8 @@ class RpiDns(object):
         for key, value in ratios.items():
             if max_ratio == value:
                 if max_ratio < 0.9:
-                    warnings.warn(f"Got alias '{key}' from '{alias}' with less than 90% accuracy", TooLowAccuracy)
+                    warnings.warn(f"Got alias '{key}' from '{alias}' with less than 90% accuracy",
+                                  TooLowAccuracy)
                 self.cur.execute("SELECT address FROM dns WHERE alias=?", (key,))
                 data = self.cur.fetchone()
                 return data[0]

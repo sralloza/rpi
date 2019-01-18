@@ -1,7 +1,7 @@
 """Logging configuration for the rest of scripts."""
 
 import datetime
-import logging
+import logging.config
 import os
 
 from rpi.dns import RpiDns
@@ -99,3 +99,18 @@ def get_dict_config(filename=None, called_from=None, name=None, use_logs_folder=
     }
 
     return dict_config
+
+
+def configure_logging(filename=None, called_from=None, name=None, use_logs_folder=False):
+    """
+
+    Args:
+        filename (str): filename path, exact filename.
+        called_from (str): path of the script that requests the logger. The name of the logger will
+            be the name of that file, without extension and path.
+        name (str): name of the file. The filename will be ```name``` + .txt
+        use_logs_folder (bool): decide to use or not the logs folder.
+
+    """
+    logging.config.dictConfig(get_dict_config(filename=filename, called_from=called_from, name=name,
+                                              use_logs_folder=use_logs_folder))

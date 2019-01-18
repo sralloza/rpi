@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from typing import Union
 
 from telegram import Bot
@@ -6,7 +7,6 @@ from telegram import Bot
 from rpi.managers.config_manager import ConfigManager
 from .downloader import Downloader
 from .exceptions import DownloaderError, UserError
-from .rpi_logging import Logging
 
 
 class BaseLauncher(object):
@@ -18,7 +18,7 @@ class BaseLauncher(object):
         else:
             self._downloader = downloader
 
-        self.logger = Logging.get(__file__, __name__)
+        self.logger = logging.getLogger(__name__)
         self.url = None
         self.chat_id = None
         self.code = None

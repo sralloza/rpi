@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import logging
 from dataclasses import dataclass, field
 
 from bs4 import BeautifulSoup as Soup
 
+from rpi.custom_logging import configure_logging
 from rpi.downloader import Downloader
 from rpi.exceptions import DownloaderError
-from rpi.rpi_logging import Logging
+
+configure_logging(called_from=__file__, use_logs_folder=True)
 
 
 @dataclass()
@@ -34,8 +37,9 @@ class WeatherRegistry:
 
 def __post_init__(self):
     self._args = (
-        self.day_of_week, self.day, self.hour, self.temperature, self.thermal_sensation, self.wind_direction,
-        self.wind_speed, self.wind_speed_max, self.rain_mm, self.snow_mm, self.rel_hum, self.rain_prob, self.snow_prob,
+        self.day_of_week, self.day, self.hour, self.temperature, self.thermal_sensation,
+        self.wind_direction, self.wind_speed, self.wind_speed_max, self.rain_mm, self.snow_mm,
+        self.rel_hum, self.rain_prob, self.snow_prob,
         self.storm_prob, self.announcements, self.info,
     )
 
@@ -57,7 +61,7 @@ class WeatherRecordsManager:
     SEMANA = ('Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo')
 
     def __init__(self):
-        self.logger = Logging.get(__file__, __name__)
+        self.logger = logging.getLogger(__name__)
         self.list = []
 
     def __len__(self):
@@ -71,7 +75,9 @@ class WeatherRecordsManager:
 
     @classmethod
     def valladolid(cls):
-        return cls.procesar(url='http://www.aemet.es/es/eltiempo/prediccion/municipios/horas/tabla/valladolid-id47186')
+        return cls.procesar(
+            url='http://www.aemet.es/es/eltiempo/prediccion/'
+                'municipios/horas/tabla/valladolid-id47186')
 
     @classmethod
     def procesar(cls, url):

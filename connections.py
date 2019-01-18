@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
 import platform
 import smtplib
@@ -20,7 +21,6 @@ from .dns import RpiDns
 from .downloader import Downloader
 from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, DownloaderError, \
     SpreadsheetNotFoundError, SheetNotFoundError
-from .rpi_logging import Logging
 
 debug_lock = Lock()
 
@@ -30,7 +30,7 @@ class Connections:
     DISABLE = platform.system() == 'Windows'
 
     def __init__(self):
-        self.logger = Logging.get(__file__, __name__)
+        self.logger = logging.getLogger(__name__)
         self.gu = UsersManager()
 
         self.lock = Lock()
@@ -60,7 +60,8 @@ class Connections:
         self.logger.debug(f'Notify - {title!r}, {message!r}, {destinations!r}, {file!r}, {force!r}')
 
         if file is None and force is False:
-            raise NeccessaryArgumentError("The 'file' argument is needed in order to check permissions.")
+            raise NeccessaryArgumentError(
+                "The 'file' argument is needed in order to check permissions.")
 
         if destinations == 'broadcast' and file is None:
             raise NeccessaryArgumentError("Broadcast can't be used without the 'file' argument.")
@@ -70,7 +71,8 @@ class Connections:
         passports = {x: False for x in self.gu}
 
         if isinstance(destinations, str):
-            # Si el user destinations es 'broadcast', se manda a todos los usuarios afiliados al servicio.
+            # If destination is 'broadcast', messaage is sent to every user afiliated to the
+            # service.
             if destinations == 'broadcast':
                 for username in self.gu:
                     if service in username.services:
@@ -83,8 +85,12 @@ class Connections:
                 for persona in destinations:
                     passports[self.gu.get_by_username(persona)] = True
             except TypeError:
-                self.logger.critical(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
-                raise TypeError(f"'destinations' must be str or iterable, not {destinations.__class__.__name__!r}")
+                self.logger.critical(
+                    "'destinations' must be str or iterable, not %r",
+                    destinations.__class__.__name__)
+                raise TypeError(
+                    f"'destinations' must be str or iterable, not "
+                    f"{destinations.__class__.__name__!r}")
 
         # Checking validations of usernames (check that each username is registered at the database)
         for user in passports:
@@ -96,11 +102,14 @@ class Connections:
             if passports[user] is False:
                 continue
             if service not in user.services and force is False:
-                self.logger.warning(f'User {user.username!r} is not registered in the service {service.name!r}')
+                self.logger.warning(
+                    f'User {user.username!r} is not registered in the service {service.name!r}')
                 continue
 
             self.logger.debug(f'Starting connection thread of {user.username!r}')
-            threads.append(Thread(name=user.username, target=self._notify, args=(user, title, message), daemon=True))
+            threads.append(
+                Thread(name=user.username, target=self._notify, args=(user, title, message),
+                       daemon=True))
             threads[-1].start()
 
         for thread in threads:
@@ -109,7 +118,8 @@ class Connections:
         self.logger.debug('Connection threads finished')
 
         if len(self.errores) > 0:
-            report = {'title': title, 'message': message, 'destinations': destinations, 'file': file, 'force': force}
+            report = {'title': title, 'message': message, 'destinations': destinations,
+                      'file': file, 'force': force}
             self.logger.error(f'Notification errors: {report}')
             return False
         else:
@@ -139,7 +149,7 @@ class Connections:
     def send_email(destinations, subject, message, files=None, is_file=False, origin='Rpi'):
         # TODO: INCLUDE DOCSTRING
 
-        logger = Logging.get(__file__, __name__)
+        logger = logging.getLogger(__name__)
         logger.debug('Sending mail %r to %r', subject, destinations)
 
         if isinstance(destinations, list) or isinstance(destinations, tuple):
@@ -208,7 +218,7 @@ class Connections:
     def to_google_spreadsheets(filename, sheetname, data):
         # TODO: INCLUDE DOCSTRING
 
-        logger = Logging.get(__file__, __name__)
+        logger = logging.getLogger(__name__)
         logger.debug(f'Saving info to google spreadsheets - {filename} - {sheetname} - {data}')
 
         # Some stuff that needs to be done to use google sheets
@@ -236,7 +246,7 @@ class Connections:
     def from_google_spreadsheets(filename, sheetname):
         # TODO: INCLUDE DOCSTRING
 
-        logger = Logging.get(__file__, __name__)
+        logger = logging.getLogger(__name__)
         logger.debug(f'Getting info from google spreadsheets - {filename} - {sheetname}')
 
         # Some stuff that needs to be done to use google sheets

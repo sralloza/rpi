@@ -1,15 +1,17 @@
 import datetime
+import logging
+import os
 
 from rpi import ADMIN_EMAIL
 from rpi import operating_system_in_brackets as osib
 from rpi.connections import Connections
+from rpi.custom_logging import LoggingInfo
 from rpi.dns import RpiDns
 from rpi.exceptions import NeccessaryArgumentError
-from rpi.rpi_logging import Logging
 
 
 def sender_main(resource_id=None, keys=False):
-    logger = Logging.get(__file__, __name__)
+    logger = logging.getLogger(__name__)
     automatic = False
 
     if resource_id is not None:
@@ -22,7 +24,8 @@ def sender_main(resource_id=None, keys=False):
         print('CV | Rpi Mail | Menús | Maildb | Log Hoy')
         return
 
-    mail_message = '<h2><span style="color: #339966; font-family: cambria; font-size: 35px;">Petición aceptada: '
+    mail_message = '<h2><span style="color: #339966; font-family: cambria; font-size: 35px;">' \
+                   'Petición aceptada: '
 
     if automatic is False:
         print('\n\n')
@@ -71,11 +74,12 @@ def sender_main(resource_id=None, keys=False):
             path += '/'
 
         file = {
-            Logging.LOG_FILENAME: today + '.log.txt',
-            Logging.LOG_DJANGO_FILENAME: today + '.django.log.txt',
-            Logging.LOGS_APACHE_ACCESS: today + '.apache.access.log.txt',
-            Logging.LOGS_APACHE_ERRROR: today + '.apache.error.log.txt'
+            LoggingInfo.LOGS_APACHE_ACCESS: today + '.apache.access.log.txt',
+            LoggingInfo.LOGS_APACHE_ERRROR: today + '.apache.error.log.txt'
         }
+
+        for filename in os.listdir(LoggingInfo.LOGS_DAY_FOLDER):
+            file[filename] = filename + '.txt'
 
     else:
         logger.critical(f'{resource_id} is not a valid resource id')
@@ -90,13 +94,11 @@ def sender_main(resource_id=None, keys=False):
     mail_message += '</span></h2><p>&nbsp;</p>'
 
     logger.debug('Sending file %r to %r', file, destino)
-    result_email = Connections.send_email(destino, about, mail_message, files=file, origin='Rpi-Sender')
+    result_email = Connections.send_email(destino, about, mail_message, files=file,
+                                          origin='Rpi-Sender')
     if result_email is True:
-        # result_notif = Connections.notify('Shipping manager', 'Request accepted:\n' + about, file=__file__)
         logger.debug(f'Shipping Manager {osib()}: sent {description} to {destino}')
     else:
-        # result_notif = Connections.notify('Shipping manager', 'Error sending' + description, file=__file__)
         logger.debug(f'Shipping Manager {osib()}: error sending {description} to {destino}')
 
-    # return {'mail': result_email, 'notification': result_notif}
     return {'mail': result_email}

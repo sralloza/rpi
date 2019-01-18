@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
 
 import requests
 from requests.exceptions import ConnectionError
 
 from .exceptions import DownloaderError
-from .rpi_logging import Logging
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 '
                          '(KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
@@ -14,10 +14,10 @@ class Downloader(requests.Session):
     """Downloader with retries control."""
 
     def __init__(self, retries=10, silenced=False):
-        self.logger = Logging.get(__file__, __name__)
+        self.logger = logging.getLogger(__name__)
 
         if silenced is True:
-            Logging.silence(self.logger)
+            self.logger.handlers = []
 
         self._retries = retries
         super().__init__()

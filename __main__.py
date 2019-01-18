@@ -3,10 +3,12 @@
 import argparse
 import sys
 
-from rpi.rpi_logging import Logging
+from rpi.custom_logging import configure_logging
 from . import __VERSION__ as VERSION, ADMIN_EMAIL
 from .connections import Connections
 from .managers.users_manager import UsersManager
+
+configure_logging(called_from=__file__, use_logs_folder=True)
 
 
 def report_error(error):
@@ -16,8 +18,6 @@ def report_error(error):
 def main():
     if len(sys.argv) <= 1:
         sys.argv.append('-h')
-
-    logger = Logging.get('pi_command', 'pi_command', force_principal=True)
 
     gu = UsersManager()
 
@@ -35,7 +35,7 @@ def main():
     notificar = subparser.add_parser('notificar')
     notificar.add_argument('titulo')
     notificar.add_argument('mensaje')
-    notificar.add_argument('destinos', nargs='+', choices=gu.usernames + ('broadcast', ))
+    notificar.add_argument('destinos', nargs='+', choices=gu.usernames + ('broadcast',))
 
     email = subparser.add_parser('email')
     email.add_argument('destino')
