@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+"""Services manager for raspberry pi scripts."""
+
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -6,41 +11,46 @@ from warnings import warn
 
 from rpi.exceptions import UnexpectedBehaviourWarning, MissingOptionsError, \
     InvalidOptionError
-from rpi.rpi_logging import Logging
 
 
-class Option(object):
-    def __init__(self, name, option_type, include=True, es=None):
-        self.name = name
-        self.type = option_type
-        self.include = include
-        self.es = es
+@dataclass
+class Option:
+    """Represents an option of a raspberry pi service."""
+
+    name: str
+    type: str
+    include: bool = field(default=True)
+    es: str = field(default=None)
 
 
-class Command(object):
+@dataclass
+class Command:
+    """Represents a command that is executed by a RaspberryService."""
+    template: Union[str, None]
+    path: Union[str, None]
+    notify: bool = field(default=True)
+    preoption: str = field(default='')
 
-    def __init__(self, template, path, notify=True, preoption=''):
-        self.preoption = preoption
-        self.path = path
+    def __post_init__(self):
+        if self.notify is True:
+            if self.template.endswith(' ') is False:
+                self.template += ' '
+            self.template += '-notify {USERNAME}'
 
-        if notify is True:
-            if template.endswith(' ') is False:
-                template += ' '
-            template += '-notify {USERNAME}'
-
-        self.template = template
-
-    def __format__(self, **kwargs):
+    def __format__(self, *args, **kwargs):
         assert isinstance(kwargs['OPTIONS'], (tuple, list))
         kwargs['OPTIONS'] = ' '.join([self.preoption + x for x in kwargs['OPTIONS']])
-        return self.template.format(**kwargs)
+        return self.template.format(*args, **kwargs)
 
-    def format(self, **kwargs):
-        return self.__format__(**kwargs)
+    def format(self, *args, **kwargs) -> str:
+        """Returns the command ready to be executed."""
+        return self.__format__(*args, **kwargs)
 
 
 @dataclass(repr=False)
-class RaspberryService(object):
+class RaspberryService:
+    """Represents a service run by raspberry pi"""
+
     DEFAULT = {'PYTHON': '/usr/local/bin/python3'}
     name: str
     command: Command
@@ -54,7 +64,6 @@ class RaspberryService(object):
     all_paths: tuple = field(init=False)
 
     def __post_init__(self):
-
         if self.extra_paths is None:
             self.extra_paths = tuple()
 
@@ -75,19 +84,23 @@ class RaspberryService(object):
         return f"RaspberryService({self.name})"
 
     @property
-    def options_names(self):
+    def options_names(self) -> tuple:
+        """Returns all the option names, both english names and spanish names."""
         return tuple(self.option_names_en + self.option_names_es)
 
     @property
-    def option_names_en(self):
+    def option_names_en(self) -> tuple:
+        """Returns the option names in english."""
         return tuple(self.option_namespace.keys())
 
     @property
-    def option_names_es(self):
+    def option_names_es(self) -> tuple:
+        """Returns the option names in spanish"""
         return tuple([x for x in self.option_namespace.values() if x is not None])
 
     @property
-    def option_namespace(self):
+    def option_namespace(self) -> dict:
+        """Returns a dict of option language transformation: english_name -> spanish_name."""
         return {option.name: option.es for option in self.options}
 
     @property
@@ -96,11 +109,22 @@ class RaspberryService(object):
         return tuple([os.path.basename(x).lower() for x in self.all_paths])
 
     @property
-    def filenames_without_ext(self):
+    def filenames_without_ext(self) -> tuple:
         """list of filenames without extension (enviar, aemet, ...)."""
-        return [os.path.splitext(x)[0].lower() for x in self.filenames_with_ext]
+        return tuple(os.path.splitext(x)[0].lower() for x in self.filenames_with_ext)
 
-    def corresponds_with(self, other):
+    def corresponds_with(self, other: str) -> bool:
+        """Checks if the string corresponds with this service. It checks the service name and
+        the filepaths with and without extension.
+
+        Args:
+            other (str): anything that can identify a service.
+
+        Returns:
+            bool: indicating wether or not the identifier corresponds with this service.
+
+        """
+
         other = os.path.basename(other).lower()
 
         if other == self.name.lower():
@@ -115,6 +139,8 @@ class RaspberryService(object):
         return False
 
     def generate_command(self, **kwargs):
+        """Returns the command ready to be executed."""
+
         kwargs.update(**RaspberryService.DEFAULT)
         kwargs.update(PATH=self.path)
 
@@ -129,7 +155,8 @@ class RaspberryService(object):
         try:
             for opt in kwargs['OPTIONS']:
                 if opt not in self.options_names:
-                    raise InvalidOptionError(f'Option {opt!r} is not registered ({self.options_names!r})')
+                    raise InvalidOptionError(
+                        f'Option {opt!r} is not registered ({self.options_names!r})')
         except KeyError:
             raise MissingOptionsError('Options have not been specified')
 
@@ -197,7 +224,8 @@ class ServicesManager(Enum):
         options=(),
         extra_paths=(
             '/home/pi/scripts/backup.py', '/home/pi/scripts/ngrok.py', '/home/pi/scripts/ngrok2.py',
-            '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py', '/home/pi/scripts/gestor_mail.py',
+            '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py',
+            '/home/pi/scripts/gestor_mail.py',
             '/home/pi/pull.sh',
         ),
         isabstract=True
@@ -247,10 +275,11 @@ class ServicesManager(Enum):
         return self.name
 
     @staticmethod
-    def get(basepath):
+    def get(basepath: str) -> RaspberryService:
+        """Returns the service given its identifier."""
 
-        logger = Logging.get(__file__, __name__)
-        logger.debug(f'Trying to identify service from {basepath!r}', enable=False)
+        logger = logging.getLogger(__name__)
+        logger.debug('Trying to identify service from %r', basepath)
 
         if isinstance(basepath, RaspberryService):
             return basepath
@@ -262,18 +291,19 @@ class ServicesManager(Enum):
             if servicio.value.corresponds_with(basepath):
                 return servicio.value
 
-        logger.warning(f"Unkown service: {basepath!r}")
+        logger.warning("Unkown service: %r", basepath)
         # warn(f"Unkown service: {basepath!r}", UnrecognisedServiceWarning)
         return ServicesManager.UNKNOWN.value
 
+    # noinspection PyTypeChecker
     @staticmethod
-    def eval(algo):
-        """Does the convertion str -> Service."""
+    def eval(string_to_evaluate: str) -> Tuple[RaspberryService]:
+        """Returns a list of services from a string representation of a list of services."""
 
-        logger = Logging.get(__file__, __name__)
-        logger.debug(f'Evaluating {algo!r}', enable=False)
+        logger = logging.getLogger(__name__)
+        logger.debug('Evaluating %r', string_to_evaluate)
         try:
-            data = eval(algo, globals(), ServicesManager.__dict__)
+            data = eval(string_to_evaluate, globals(), ServicesManager.__dict__)
         except SyntaxError:
             return tuple()
 
@@ -282,13 +312,13 @@ class ServicesManager(Enum):
         except TypeError:
             data = [data, ]
 
-        for i in range(len(data)):
+        for i, _ in enumerate(data):
             try:
-                data[i] = data[i].value
+                data[i]: RaspberryService = data[i].value
             except AttributeError:
                 warn(f"Something may have gone wrong (data={data!r})", UnexpectedBehaviourWarning)
-                logger.warning(f"Something may have gone wrong (data={data!r})")
+                logger.warning("Something may have gone wrong (data=%r)", data)
 
-        logger.debug(f'Evaluated: {tuple(data)!r}', enable=False)
+        logger.debug('Evaluated: %r', data)
 
         return tuple(data)
