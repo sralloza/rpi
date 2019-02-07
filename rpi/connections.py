@@ -2,6 +2,7 @@
 import logging
 import os
 import platform
+import re
 import smtplib
 from email import encoders
 from email.mime.base import MIMEBase
@@ -19,10 +20,8 @@ from rpi.managers.services_manager import ServicesManager
 from rpi.managers.users_manager import UsersManager
 from .dns import RpiDns
 from .downloader import Downloader
-from .exceptions import NeccessaryArgumentError, UnrecognisedUsernameError, DownloaderError, \
-    SpreadsheetNotFoundError, SheetNotFoundError
-
-debug_lock = Lock()
+from .exceptions import NeccessaryArgumentError, UserNotFoundError, DownloaderError, \
+    SpreadsheetNotFoundError, SheetNotFoundError, InvalidMailAddressError
 
 
 class Connections:
@@ -31,14 +30,20 @@ class Connections:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.gu = UsersManager()
+        self.user_manager = UsersManager()
 
-        self.lock = Lock()
+        self.errors_lock = Lock()
+        self.codes_lock = Lock()
         self.errores = []
-        self._downloader = Downloader()
+        self.output_codes = []
+        self.downloader = Downloader()
+
+    def append_code(self, code):
+        with self.codes_lock:
+            self.output_codes.append(code)
 
     def append_error(self, something):
-        with self.lock:
+        with self.errors_lock:
             self.errores.append(something)
 
     @staticmethod
@@ -50,40 +55,47 @@ class Connections:
         return output
 
     @staticmethod
-    def notify(title, message, destinations=None, file: dict = None, force=False):
+    def notify(title, message, destinations=None, file=None, force=False):
         # TODO: INSERT DOCSTRING
         # TODO: IMPROVE CODE
         # TODO: TRANSLATE INTO ENGLISH
 
         self = object.__new__(Connections)
         self.__init__()
-        self.logger.debug(f'Notify - {title!r}, {message!r}, {destinations!r}, {file!r}, {force!r}')
+        self.logger.debug('Notify - %r, %r, %r, %r, %r', title, message, destinations, file, force)
+
+        if destinations == 'multicast' and file is None:
+            raise NeccessaryArgumentError("Multicast can't be used without the 'file' argument.")
+
+        if destinations == 'broadcast' and force is False:
+            raise PermissionError("'force' must be True in order to use broadcast.")
 
         if file is None and force is False:
             raise NeccessaryArgumentError(
                 "The 'file' argument is needed in order to check permissions.")
 
-        if destinations == 'broadcast' and file is None:
-            raise NeccessaryArgumentError("Broadcast can't be used without the 'file' argument.")
-
         service = ServicesManager.get(file) if file is not None else ServicesManager.UNKNOWN
 
-        passports = {x: False for x in self.gu}
+        passports = {x: False for x in self.user_manager}
 
         if isinstance(destinations, str):
-            # If destination is 'broadcast', messaage is sent to every user afiliated to the
-            # service.
-            if destinations == 'broadcast':
-                for username in self.gu:
+            # If destination is 'broadcast', messaage is sent to
+            # every user afiliated to the service.
+            if destinations == 'multicast':
+                for username in self.user_manager:
                     if service in username.services:
                         passports[username] = True
 
-            passports[self.gu.get_by_username(destinations)] = True
+            if destinations == 'broadcast':
+                for username in self.user_manager:
+                    passports[username] = True
+
+            passports[self.user_manager.get_by_username(destinations)] = True
 
         else:
             try:
                 for persona in destinations:
-                    passports[self.gu.get_by_username(persona)] = True
+                    passports[self.user_manager.get_by_username(persona)] = True
             except TypeError:
                 self.logger.critical(
                     "'destinations' must be str or iterable, not %r",
@@ -94,19 +106,19 @@ class Connections:
 
         # Checking validations of usernames (check that each username is registered at the database)
         for user in passports:
-            if user.username not in self.gu.usernames:
-                raise UnrecognisedUsernameError(f'Uknown username: {user.username!r}')
+            if user.username not in self.user_manager.usernames:
+                raise UserNotFoundError(f'Uknown username: {user.username!r}')
 
         threads = []
-        for user in self.gu:
+        for user in self.user_manager:
             if passports[user] is False:
                 continue
             if service not in user.services and force is False:
                 self.logger.warning(
-                    f'User {user.username!r} is not registered in the service {service.name!r}')
+                    'User %r is not registered in the service %r', user.username, service.name)
                 continue
 
-            self.logger.debug(f'Starting connection thread of {user.username!r}')
+            self.logger.debug('Starting connection thread of %s', user.username)
             threads.append(
                 Thread(name=user.username, target=self._notify, args=(user, title, message),
                        daemon=True))
@@ -117,13 +129,12 @@ class Connections:
 
         self.logger.debug('Connection threads finished')
 
-        if len(self.errores) > 0:
+        if len(self.errores):
             report = {'title': title, 'message': message, 'destinations': destinations,
                       'file': file, 'force': force}
-            self.logger.error(f'Notification errors: {report}')
+            self.logger.error('Notification errors: %s', report)
             return False
-        else:
-            return True
+        return all(self.output_codes)
 
     def _notify(self, user, title, message):
         # TODO: INCLUDE DOCSTRING
@@ -132,18 +143,25 @@ class Connections:
 
         try:
             if user.is_active is False:
-                self.logger.warning(f'BANNED USER: {user.username!r}')
-                return False
+                self.logger.warning('BANNED USER: %r', user.username)
+                self.append_code(False)
+                return
 
             if self.DISABLE is True:
-                self.logger.warning(f'DISABLED NOTIFICATIONS - {user.username!r}')
-                return False
-            else:
+                self.logger.warning('DISABLED NOTIFICATIONS - %r', user.username)
+                self.append_code(False)
+                return
+            try:
                 user.launcher.fire(title, message)
-                self.logger.debug(f'Sent notification to {user.username!r}')
-                return True
+            except NotImplementedError:
+                self.append_code(False)
+                return
+            self.logger.debug('Sent notification to %r', user.username)
+            self.append_code(True)
+            return
         except DownloaderError:
             self.append_error(user)
+            self.append_code(True)
 
     @staticmethod
     def send_email(destinations, subject, message, files=None, is_file=False, origin='Rpi'):
@@ -152,9 +170,22 @@ class Connections:
         logger = logging.getLogger(__name__)
         logger.debug('Sending mail %r to %r', subject, destinations)
 
-        if isinstance(destinations, list) or isinstance(destinations, tuple):
+        address_pattern = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+
+        if isinstance(destinations, (list, tuple)):
+            for address in destinations:
+                if address_pattern.search(address) is None:
+                    logger.critical('%r is not a valid email address', address)
+                    raise InvalidMailAddressError(f'{address!r} is not a valid email address.')
             destinations = ', '.join(destinations)
 
+        if not isinstance(destinations, str):
+            logger.critical('destinations must be iterable or str.')
+            raise TypeError('destinations must be iterable or str.')
+
+        if address_pattern.search(destinations) is None:
+            logger.critical('%r is not a valid email address', destinations)
+            raise InvalidMailAddressError(f'{destinations!r} is not a valid email address.')
         try:
             if len(files) == 0:
                 files = None
@@ -219,7 +250,7 @@ class Connections:
         # TODO: INCLUDE DOCSTRING
 
         logger = logging.getLogger(__name__)
-        logger.debug(f'Saving info to google spreadsheets - {filename} - {sheetname} - {data}')
+        logger.debug('Saving info to google spreadsheets - %s - %s - %s', filename, sheetname, data)
 
         # Some stuff that needs to be done to use google sheets
         scope = ['https://spreadsheets.google.com/feeds',
@@ -231,13 +262,13 @@ class Connections:
         try:
             archivo = gcc.open(filename)
         except SpreadsheetNotFound:
-            logger.critical(f'File not found: {filename!r}')
-            raise SpreadsheetNotFoundError(f'File not found: {filename!r}')
+            logger.critical('Spreadsheet not found: %r', filename)
+            raise SpreadsheetNotFoundError(f'Spreadsheet not found: {filename!r}')
 
         try:
             wks = archivo.worksheet(sheetname)
         except WorksheetNotFound:
-            logger.critical(f'Sheet not found: {sheetname!r}')
+            logger.critical('Sheet not found: %r', sheetname)
             raise SheetNotFoundError(f'Sheet not found: {sheetname!r}')
 
         wks.append_row(data)
@@ -247,7 +278,7 @@ class Connections:
         # TODO: INCLUDE DOCSTRING
 
         logger = logging.getLogger(__name__)
-        logger.debug(f'Getting info from google spreadsheets - {filename} - {sheetname}')
+        logger.debug('Getting info from google spreadsheets - %s - %s', filename, sheetname)
 
         # Some stuff that needs to be done to use google sheets
 
@@ -260,13 +291,13 @@ class Connections:
         try:
             archivo = gcc.open(filename)
         except SpreadsheetNotFound:
-            logger.critical(f'File not found: {filename!r}')
-            raise SpreadsheetNotFoundError(f'File not found: {filename!r}')
+            logger.critical('Spreadsheet not found: %r', filename)
+            raise SpreadsheetNotFoundError(f'Spreadsheet not found: {filename!r}')
 
         try:
             wks = archivo.worksheet(sheetname)
         except WorksheetNotFound:
-            logger.critical(f'Sheet not found: {sheetname!r}')
+            logger.critical('Sheet not found: %r', sheetname)
             raise SheetNotFoundError(f'Sheet not found: {sheetname!r}')
 
         return wks.get_all_records()

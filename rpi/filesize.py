@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+"""Converter for memory measure units."""
+
+
 TRADITIONAL = (
     (1024 ** 5, 'P'),
     (1024 ** 4, 'T'),

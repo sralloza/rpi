@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from json import JSONDecodeError
 
 from rpi.dns import RpiDns
-from rpi.exceptions import UnrecognisedUsernameError
+from rpi.exceptions import UserNotFoundError
 from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, TelegramLauncher, \
     InvalidLauncher
 from .crontab_manager import CrontabManager
@@ -171,7 +171,7 @@ class UsersManager(list):
             if user.username == username:
                 return user
         self.logger.critical(f'Unknown username: {username!r}')
-        raise UnrecognisedUsernameError(f'Unknown username: {username!r}')
+        raise UserNotFoundError(f'Unknown username: {username!r}')
 
     def get_by_telegram_id(self, chat_id):
         chat_id = int(chat_id)
@@ -181,4 +181,4 @@ class UsersManager(list):
                 if user.launcher.chat_id == chat_id:
                     return user
         self.logger.critical(f'Unknown chat_id: {chat_id!r}')
-        raise UnrecognisedUsernameError(f'Unknown chat_id: {chat_id!r}')
+        raise UserNotFoundError(f'Unknown chat_id: {chat_id!r}')

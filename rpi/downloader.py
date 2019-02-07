@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+
+"""Custom downloader with retries control."""
+
 import logging
 
 import requests
-from requests.exceptions import ConnectionError
 
 from .exceptions import DownloaderError
 
@@ -22,30 +24,30 @@ class Downloader(requests.Session):
         self._retries = retries
         super().__init__()
 
-    def get(self, *args, **kwargs):
-        self.logger.debug(f'GET {args[0]!r}')
+    def get(self, url, **kwargs):
+        self.logger.debug('GET %r', url)
         retries = self._retries
 
         while retries > 0:
             try:
-                return super().get(*args, **kwargs)
-            except ConnectionError:
+                return super().get(url, **kwargs)
+            except requests.exceptions.ConnectionError:
                 retries -= 1
-                self.logger.warning(f'Connection error in GET, retries={retries}')
+                self.logger.warning('Connection error in GET, retries=%s', retries)
 
-        self.logger.critical(f'Download error in GET {args[0]!r}')
+        self.logger.critical('Download error in GET %r', url)
         raise DownloaderError('max retries failed.')
 
-    def post(self, *args, **kwargs):
-        self.logger.debug(f'POST {args[0]!r}')
+    def post(self, url, data=None, json=None, **kwargs):
+        self.logger.debug('POST %r', url)
         retries = self._retries
 
         while retries > 0:
             try:
-                return super().post(*args, **kwargs)
-            except ConnectionError:
+                return super().post(url=url, data=data, json=json, **kwargs)
+            except requests.exceptions.ConnectionError:
                 retries -= 1
-                self.logger.warning('Connection error in POST, retries=' + str(retries))
+                self.logger.warning('Connection error in POST, retries=%s', retries)
 
-        self.logger.critical(f'Download error in POST {args[0]!r}')
+        self.logger.critical('Download error in POST %r', url)
         raise DownloaderError('max retries failed.')

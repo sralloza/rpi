@@ -21,7 +21,7 @@ class CrontabManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         if operating_system() == 'W':
-            self.cron = CronTab(tabfile='D:/PYTHON/raspberry_pi/rpi/crontab.txt')
+            self.cron = CronTab(tabfile='E:/PYTHON/raspberry_pi/rpi/crontab.txt')
         else:
             self.cron = CronTab(user=True)
 

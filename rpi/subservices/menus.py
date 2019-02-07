@@ -6,8 +6,7 @@ import re
 import sqlite3
 import threading
 from dataclasses import dataclass, field
-from sqlite3 import IntegrityError
-from typing import List
+from typing import List, Union, Iterable
 
 from bs4 import BeautifulSoup as Soup
 
@@ -21,16 +20,16 @@ from rpi.managers.users_manager import UsersManager
 
 configure_logging(called_from=__file__, use_logs_folder=True)
 
-MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-         "agosto", "septiembre", "octubre", "noviembre", "diciembre")
-DIAS = ("lunes", "martes", "miercoles", "jueves",
+MONTHS = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+          "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+DAYS = ("lunes", "martes", "miercoles", "jueves",
         "viernes", "sabado", "domingo")
-TDIAS = ("lunes", "martes", "miércoles", "jueves",
-         "viernes", "sábado", "domingo")
-EDIAS = ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')
+ACCENT_DAYS = ("lunes", "martes", "miércoles", "jueves",
+               "viernes", "sábado", "domingo")
+ENGLISH_DAYS = ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')
 
 
-def extend_date(anything):
+def extend_date(anything: Union[Iterable[str], str]):
     """Extends a date or a set of dates of 01/01/2018 type into DIA: 01 de Enero de 2018 (Lunes)."""
     output = []
     if isinstance(anything, str):
@@ -49,25 +48,25 @@ def extend_date(anything):
     return output
 
 
-def _extend_date(date):
+def _extend_date(date: str) -> str:
     """Extends a date of 01/01/2018 type into DIA: 01 de Enero de 2018 (Lunes)."""
 
     day, month, year = [int(x) for x in date.split('/')]
 
     date = datetime.datetime.strptime(f'{day}-{month}-{year}', '%d-%m-%Y').strftime('%A').upper()
-    date = TDIAS[EDIAS.index(date)]
-    string = f'DÍA: {day:02d} DE {MESES[month - 1].upper()} DE {year:04d} ({date.upper()})'
+    date = ACCENT_DAYS[ENGLISH_DAYS.index(date)]
+    string = f'DÍA: {day:02d} DE {MONTHS[month - 1].upper()} DE {year:04d} ({date.upper()})'
     return string
 
 
 def get_date():
     """Returns the current day, month, and year."""
-    p = datetime.date.today()
-    return p.day, p.month, p.year
+    today = datetime.date.today()
+    return today.day, today.month, today.year
 
 
 class MenusDatabaseManager:
-    """Gestor de la base de datos de menús de la Residencia Santiago."""
+    """Database manager for the menus"""
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -106,6 +105,8 @@ class MenusDatabaseManager:
 
     # ------   OPERATIONS WITH UPDATES ------
     def set_update(self):
+        """Sets the last update the actual datetime in the database."""
+
         now = datetime.datetime.today()
         if self.get_update() == datetime.datetime.min:
             self.cur.execute("insert into updates values(?)", (now.strftime('%y-%m-%d %H:%M:%S'),))
@@ -114,7 +115,9 @@ class MenusDatabaseManager:
         self.con.commit()
         return True
 
-    def get_update(self):
+    def get_update(self) -> datetime.datetime:
+        """Gets the datetime of the last update."""
+
         self.cur.execute("select datetime from updates")
         try:
             result = datetime.datetime.strptime(self.cur.fetchone()[0], '%y-%m-%d %H:%M:%S')
@@ -123,58 +126,68 @@ class MenusDatabaseManager:
         return result
 
     # ------   OPERATIONS WITH LINKS   ------
-    def save_link(self, link):
-        """Saves a link in the database with the current datetime."""
+    def save_link(self, link: str):
+        """Saves a link in the database with the current datetime.
+
+        Args:
+            link (str): link to save in the database.
+        """
+
         dia = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
         data_pack = (dia, link)
 
         try:
             self.cur.execute('INSERT INTO "links" VALUES(?,?)', data_pack)
-        except IntegrityError:
-            self.logger.debug(f'Link already exists: {link!r}')
+        except sqlite3.IntegrityError:
+            self.logger.debug('Link already exists: %r', link)
             return False
 
-        self.logger.debug(f'Saved link: {link!r}')
+        self.logger.debug('Saved link: %r', link)
         return True
 
     def extract_links(self):
-        self.cur.execute("SELECT link FROM links")
-        links = [x[0] for x in self.cur.fetchall()]
-
+        """Returns the links saved in the database."""
         self.logger.debug('Extracting links from database')
-        return links
+        self.cur.execute("SELECT link FROM links")
+
+        return tuple(x[0] for x in self.cur.fetchall())
 
     # ------   OPERATIONS WITH MENUS   ------
-    def save_menu(self, menu):
-        """Saves a menu in the database."""
+    def save_menu(self, menu) -> bool:
+        """Saves a menu in the database.
+
+        Args:
+            menu (Menu): Menu to save in the database.
+
+        Returns:
+            bool: Status of the operation.
+        """
         datos = (
             menu.id, menu.origin, menu.day, menu.month, menu.year, menu.day_of_week_as_str,
             menu.launch1,
             menu.launch2, menu.dinner1, menu.dinner2)
         try:
             self.cur.execute('INSERT INTO "menus" VALUES(?,?,?,?,?,?,?,?,?,?)', datos)
-        except IntegrityError:
+        except sqlite3.IntegrityError:
             return False
-        self.logger.debug(f'Saved menu: {menu!r}')
+        self.logger.debug('Saved menu: %r', menu)
         return True
 
     def save_changes(self):
         """Saves all changes in the databases."""
         self.con.commit()
 
-    def extract_menus_data(self):
+    def extract_menus_data(self) -> tuple:
         """Extract all data from the database."""
         self.cur.execute('SELECT * FROM "menus"')
         self.logger.debug('Extracting menus data from database')
-        return self.cur.fetchall()
+        return tuple(self.cur.fetchall())
 
     def close(self):
         """Saves changes and closes the database connection."""
         self.logger.debug('Closing database')
         self.con.commit()
         self.con.close()
-        del self.con
-        del self.cur
 
 
 @dataclass
@@ -194,37 +207,42 @@ class Menu:
     month_as_str: str = field(init=False)
 
     def __post_init__(self):
-
         self.day = int(self.day)
         self.year = int(self.year)
 
         try:
             self.month = int(self.month)
         except ValueError:
-            self.month = MESES.index(str(self.month).lower()) - 1
+            self.month = MONTHS.index(str(self.month).lower()) - 1
 
         if not 1 <= self.month <= 12:
             raise InvalidMonthError(f"{self.month} is not a valid month [1-12]")
 
-        self.month_as_str = MESES[self.month - 1]
+        self.month_as_str = MONTHS[self.month - 1]
 
-        foo = datetime.datetime(self.year, self.month, self.day).strftime('%A').upper()
-        self.day_of_week_as_str = TDIAS[EDIAS.index(foo)].capitalize()
+        day_of_week = datetime.datetime(self.year, self.month, self.day).strftime('%A').upper()
+        self.day_of_week_as_str = ACCENT_DAYS[ENGLISH_DAYS.index(day_of_week)].capitalize()
 
     @property
-    def id(self):
+    def id(self) -> int:
         """Returns the id of a menu, formed by year, month and day."""
         return int(f'{self.year:04d}{self.month:02d}{self.day:02d}')
 
     @property
-    def date(self):
+    def date(self) -> datetime.date:
         """Returns the date of the menu as an instance of datetiem.date"""
         return datetime.date(self.year, self.month, self.day)
 
     @staticmethod
-    def generate_id(dia_mes, mes, ano):
-        """Genera la id de un menú."""
-        return int(f'{ano:04d}{mes:02d}{dia_mes:02d}')
+    def generate_id(month_day: int, month: int, year: int) -> int:
+        """Genera la id de un menú.
+
+        Args:
+            month_day (int): day of the month.
+            month (int): month.
+            year (int): year.
+        """
+        return int(f'{year:04d}{month:02d}{month_day:02d}')
 
     def __lt__(self, other):
         return self.id < other.id
@@ -235,37 +253,37 @@ class Menu:
             logger = logging.getLogger(__name__)
             logger.warning('Too much information (minimal=True, arg=\'all\')')
 
-        o = ''
+        output = ''
         if html is True:
-            o += '<b>'
+            output += '<b>'
         if minimal is False:
-            o += "{} de {} de {} ({}):".format(
+            output += "{} de {} de {} ({}):".format(
                 self.day, self.month_as_str, self.year, self.day_of_week_as_str)
         if html is True:
-            o += '</b>'
+            output += '</b>'
 
         if minimal is False:
-            o += '\n'
+            output += '\n'
 
-        if arg == 'launch' or arg == 'all':
+        if arg in ('launch', 'all'):
             if self.launch1 is not None:
-                o += f'Comida: {self.launch1}'
+                output += f'Comida: {self.launch1}'
                 if self.launch2 is not None:
-                    o += f' y {self.launch2}'
+                    output += f' y {self.launch2}'
 
         if arg == 'all':
-            o += '\n'
+            output += '\n'
 
-        if arg == 'dinner' or arg == 'all':
+        if arg in ('dinner', 'all'):
             if self.dinner1 is not None:
-                o += f'Cena: {self.dinner1}'
+                output += f'Cena: {self.dinner1}'
                 if self.dinner2 is not None:
-                    o += f' y {self.dinner2}'
+                    output += f' y {self.dinner2}'
 
-        return o
+        return output
 
 
-class MenusManager(object):
+class MenusManager:
     """Manages a list of menus."""
 
     def __init__(self, url=None):
@@ -298,32 +316,39 @@ class MenusManager(object):
         self.sqlite_lock = threading.Lock()
         self.links_to_save = []
 
-        self.load()
-
-        self.logger.debug('Menus manager loaded')
+        if self.load():
+            self.logger.debug('Menus manager loaded')
+        else:
+            self.logger.critical('Error loading menus')
 
     def __contains__(self, item):
         if isinstance(item, int):
             return item in (x.id for x in self)
-        else:
-            raise TypeError('ID must be an integer')
+        raise TypeError('ID must be an integer')
 
     def __iter__(self):
         return iter(self.list)
 
     def load_from_database(self):
+        """Loads the menus from the database."""
 
         self.logger.debug('Loading menus from database')
         menus = self.database_manager.extract_menus_data()
         for row in menus:
-            _, origin, day, month, year, day_of_wee_as_str, launch1, launch2, dinner1, dinner2 = row
+            _, origin, day, month, year, _, launch1, launch2, dinner1, dinner2 = row
             menu = Menu(
                 day=day, month=month, year=year,
                 launch1=launch1, launch2=launch2, dinner1=dinner1, dinner2=dinner2, origin=origin
             )
             self.list.append(menu)
 
-    def save_to_database(self):
+    def save_to_database(self)->int:
+        """Saves the menus to the database.
+
+        Returns:
+            int: number of menus saved to the database.
+
+        """
         self.logger.debug('Saving menus to database')
         i = 0
         for menu in self:
@@ -332,28 +357,30 @@ class MenusManager(object):
                 i += 1
         self.database_manager.save_changes()
 
-        self.logger.debug(f'Saved {i} menus to database')
+        self.logger.debug('Saved %s menus to database', i)
         return i
 
     def sort(self, **kwargs):
+        """Sorts the menu list."""
         self.list.sort(**kwargs)
 
     def update(self, day, month, year, **kwargs):
+        """Updates some attributes of a specified menu."""
         possible_days = [x for x in self.list if x.day == day]
 
-        for x in possible_days:
-            if x.month == month and x.year == year:
-                index = self.list.index(x)
+        for menu in possible_days:
+            if menu.month == month and menu.year == year:
+                index = self.list.index(menu)
 
                 if "launch1" in kwargs:
-                    x.launch1 = kwargs.pop("launch1")
+                    menu.launch1 = kwargs.pop("launch1")
                 if "launch2" in kwargs:
-                    x.launch2 = kwargs.pop("launch2")
+                    menu.launch2 = kwargs.pop("launch2")
                 if "dinner1" in kwargs:
-                    x.dinner1 = kwargs.pop("dinner1")
+                    menu.dinner1 = kwargs.pop("dinner1")
                 if "dinner2" in kwargs:
-                    x.dinner2 = kwargs.pop("dinner2")
-                self.list[index] = x
+                    menu.dinner2 = kwargs.pop("dinner2")
+                self.list[index] = menu
                 break
         else:
             menu = Menu(day, month, year)
@@ -369,6 +396,7 @@ class MenusManager(object):
             self.list.append(menu)
 
     def load(self):
+        """Loads all the menus required."""
         self.load_from_database()
 
         current_day, current_month, current_year = get_date()
@@ -376,12 +404,12 @@ class MenusManager(object):
         current_id = Menu.generate_id(current_day, current_month, current_year)
 
         if current_id in self:
-            return self
+            return True
 
         if datetime.datetime.today() - self.database_manager.get_update() <= datetime.timedelta(
                 seconds=60 * 20):
             self.logger.debug('Web not processed - less than 20 minutes since last update')
-            return
+            return False
 
         self.logger.debug('Processing web - more than 20 minutes since last update')
         self.updated = True
@@ -389,7 +417,7 @@ class MenusManager(object):
         self.save_to_database()
         self.database_manager.set_update()
 
-        return
+        return True
 
     @staticmethod
     def load_csv(csvpath):
@@ -399,8 +427,8 @@ class MenusManager(object):
 
         self.logger.debug('Loading from csv')
 
-        with open(csvpath, encoding='utf-8') as f:
-            contenido = f.read().splitlines()
+        with open(csvpath, encoding='utf-8') as file_handler:
+            contenido = file_handler.read().splitlines()
 
         contenido = [x.split(';') for x in contenido]
         contenido = [[elemento.strip() for elemento in fila] for fila in contenido]
@@ -417,7 +445,7 @@ class MenusManager(object):
                 continue
             for elemento in fila:
                 elemento = elemento.title()
-                for i in range(len(cont1)):
+                for i, _ in enumerate(cont1):
                     elemento = elemento.replace(titled[i], cont1[i])
                 try:
                     elemento = int(elemento)
@@ -433,13 +461,13 @@ class MenusManager(object):
                                   dinner1=fila[5], dinner2=fila[6], origin='manual'))
 
         guardado = self.save_to_database()
-        self.logger.debug(f'Saved {guardado} menus in the data base')
+        self.logger.debug('Saved %s menus in the data base', guardado)
         return guardado
 
     def download_and_process_web(self):
-        """Descarga y procesa la página web."""
+        """Downloads and processes web page."""
 
-        self.logger.debug(f'Downloading and processing {self.url!r}')
+        self.logger.debug('Downloading and processing %r', self.url)
         opcodes = self.generate_opcodes(self.url)
         if opcodes == -1:
             return -1
@@ -451,12 +479,12 @@ class MenusManager(object):
 
         titled = [' ' + x.title() + ' ' for x in cont1]
 
-        for e in lista:
-            ano = int(e['year'])
-            mes = int(e['mes'])
-            dia = int(e['dia'])
-            code = e['code']
-            value = e['value']
+        for element in lista:
+            ano = int(element['year'])
+            mes = int(element['mes'])
+            dia = int(element['dia'])
+            code = element['code']
+            value = element['value']
 
             for k in titled:
                 if k in value:
@@ -481,7 +509,7 @@ class MenusManager(object):
         return self
 
     def generate_opcodes(self, url):
-        """Descarga la web de la residencia y crea los opcodes."""
+        """Downloads url and creates opcodes."""
 
         self.logger.debug('Generating opcodes')
 
@@ -515,17 +543,19 @@ class MenusManager(object):
         for enlace in self.links_to_save:
             self.database_manager.save_link(enlace)
 
+        return 0
+
     def append_to_opcodes(self, anything):
         with self.opcodes_lock:
             self.opcodes.append(anything)
 
     def procesar_url_menus(self, url):
-        self.logger.debug(f'Processing web {url!r}')
+        self.logger.debug('Processing web %r', url)
 
         try:
             html = self.downloader.get(url)
         except DownloaderError:
-            self.logger.error(f'Skipped: {url!r}')
+            self.logger.error('Skipped: %r', url)
             return
 
         with self.sqlite_lock:
@@ -535,7 +565,7 @@ class MenusManager(object):
         resultado = sopa.find('article', {'class': 'j-blog'})
         textos = resultado.text.split('\n')
 
-        for i in range(len(textos)):
+        for i, _ in enumerate(textos):
             textos[i] = textos[i].strip().replace('\xa0', '')
         while '' in textos:
             textos.remove('')
@@ -575,10 +605,10 @@ class MenusManager(object):
 
             while elem[0] == ' ':
                 elem = elem[1:]
-                if len(elem) == 0:
+                if not elem:
                     break
 
-            if len(elem) == 0:
+            if not elem:
                 continue
 
             if self.pattern2.match(elem):
@@ -590,28 +620,28 @@ class MenusManager(object):
                         elem = match
                         break
                 dia_mes = elem[5:7]
-                for i in range(len(MESES)):
-                    if elem.lower().count(MESES[i]):
+                for i, _ in enumerate(MONTHS):
+                    if elem.lower().count(MONTHS[i]):
                         index_meses = i
                         break
                 else:
                     continue
-                mes = MESES[index_meses]
+                mes = MONTHS[index_meses]
                 ano = elem[15 + len(mes):19 + len(mes)]
                 dia_mes, ano = [int(x) for x in [dia_mes, ano]]
 
-                for i in range(len(DIAS)):
-                    if elem.lower().count(DIAS[i]) != 0:
+                for i, _ in enumerate(DAYS):
+                    if elem.lower().count(DAYS[i]) != 0:
                         index_dias = i
                         break
                 else:
-                    for i in range(len(TDIAS)):
-                        if elem.lower().count(TDIAS[i]) != 0:
+                    for i, _ in enumerate(ACCENT_DAYS):
+                        if elem.lower().count(ACCENT_DAYS[i]) != 0:
                             index_dias = i
                             break
                     else:
                         raise InvalidDayError(f'Error en el día: {elem}')
-                dia_semana = TDIAS[index_dias].title()
+                dia_semana = ACCENT_DAYS[index_dias].title()
 
                 elem = (f"{ano:04d}{index_meses + 1:02d}{dia_mes:02d}xx"
                         f" {dia_semana}")
@@ -672,13 +702,14 @@ class MenusManager(object):
         return
 
     def process_opcodes(self) -> List[dict]:
-        """Transforma una list del tipo [OPCODE] [VALOR] en una lista con la información de cada opcode extraída en
+        """Transforma una list del tipo [OPCODE] [VALOR] en una lista con la
+         información de cada opcode extraída en
         forma de diccionario."""
 
         self.logger.debug('Processing opcodes')
         salida = []
         for line in self.opcodes:
-            d = {}
+            output = {}
             opcode = line[:10]
             value = line[11:].title()
 
@@ -690,27 +721,27 @@ class MenusManager(object):
             if code == 'xx':
                 value = value.capitalize()
 
-            d['year'] = ano
-            d['mes'] = mes
-            d['dia'] = dia
-            d['code'] = code
-            d['value'] = value
-            salida.append(d)
+            output['year'] = ano
+            output['mes'] = mes
+            output['dia'] = dia
+            output['code'] = code
+            output['value'] = value
+            salida.append(output)
 
         return salida
 
     def week_to_str(self, today):
-        p = ''
+        output = ''
         counter = 0
         level = today - datetime.timedelta(days=7)
         for menu in self:
             if today >= menu.date >= level:
                 counter += 1
-                p += menu.__str__(html=True)
-                p += '\n\n'
+                output += menu.__str__(html=True)
+                output += '\n\n'
         if counter == 0:
             return False
-        return p
+        return output
 
     @staticmethod
     def notify(message, destinations, show='all'):
@@ -718,7 +749,7 @@ class MenusManager(object):
         warnings.warn('This method should not be used, will be deleted in the next version',
                       DeprecationWarning)
         title = 'Menús Resi'
-        gu = UsersManager()
+        users_manager = UsersManager()
 
         if isinstance(message, Menu):
             mensaje_normal = message.__str__(arg=show)
@@ -728,7 +759,7 @@ class MenusManager(object):
             mensaje_normal = message
 
         if isinstance(destinations, str):
-            usuario = gu.get_by_username(destinations).username
+            usuario = users_manager.get_by_username(destinations).username
             if isinstance(usuario.launcher, BaseMinimalLauncher):
                 Connections.notify(title, mensaje_minimal, destinations=usuario, file=__file__)
             else:
@@ -738,7 +769,7 @@ class MenusManager(object):
                 usuarios_normales = []
                 usuarios_minimal = []
                 for nombre in destinations:
-                    usuario = gu.get_by_username(nombre)
+                    usuario = users_manager.get_by_username(nombre)
                     if isinstance(usuario.launcher, BaseMinimalLauncher):
                         usuarios_minimal.append(usuario.username)
                     else:

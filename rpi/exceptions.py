@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 
+"""Exceptions raised by elements of the rpi module."""
+
+
 # ERRORS
 
 
 class BaseError(Exception):
     """Base class for errors in the system."""
+
+
+class InvalidMailAddressError(BaseError):
+    """Invalid mail address."""
 
 
 class WrongCalledError(BaseError):
@@ -23,7 +30,7 @@ class UnrecognisedServiceError(BaseError):
     """A service couldn't be identified."""
 
 
-class UnrecognisedUsernameError(BaseError):
+class UserNotFoundError(BaseError):
     """A username couldn't be identified."""
 
 

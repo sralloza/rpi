@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+"""Defines the launchers used by users to get notifications."""
+
 import logging
 from typing import Union
 
@@ -9,7 +12,7 @@ from .downloader import Downloader
 from .exceptions import DownloaderError, UserError
 
 
-class BaseLauncher(object):
+class BaseLauncher:
     """Clase base para lanzar notificadores."""
 
     def __init__(self, downloader=None):
@@ -39,6 +42,7 @@ class BaseLauncher(object):
 
 
 class InvalidLauncher(BaseLauncher):
+    """An invalid launcher"""
 
     def fire(self, title, message):
         raise NotImplementedError
@@ -87,6 +91,8 @@ class IftttLauncher(BaseExtendedLauncher):
 
 
 class TelegramLauncher(BaseExtendedLauncher):
+    """Telegram launcher."""
+
     def __init__(self, chat_id: Union[str, int], downloader=None):
         super().__init__(downloader)
 
@@ -108,6 +114,7 @@ class TelegramLauncher(BaseExtendedLauncher):
         return {"type": "Telegram", "config": str(self.code)}
 
     def update_status(self):
+        """Updates the status of self.code."""
         if self.chat_id is not None:
             self.code = ''
 
