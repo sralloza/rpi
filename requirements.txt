@@ -1,0 +1,9 @@
+pytest
+bs4
+cryptography
+python-crontab
+httplib2
+requests
+gspread
+google_api_python_client
+oauth2client

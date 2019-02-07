@@ -1,128 +1,131 @@
+# -*- coding: utf-8 -*-
+
+"""Defines time operations."""
+
 from rpi.exceptions import InvalidLanguage
+
+ALPHABET = {
+    'abbr': {
+        'es': ['d', 'h', 'm', 's', '', 'y'],
+        'en': ['d', 'h', 'm', 's', '', 'and']
+    },
+    'default': {
+        'es': ['día', 'hora', 'minuto', 'segundo', 's', 'y'],
+        'en': ['day', 'hour', 'minute', 'second', 's', 'and']
+    }
+}
 
 
 def secs_to_str(seconds, abbreviated=False, integer=None, language='en'):
     """Returns seconds extended as string."""
-
-    alphabet = {
-        'abbr': {
-            'es': ['d', 'h', 'm', 's', ''],
-            'en': ['d', 'h', 'm', 's', '']
-        },
-        'default': {
-            'es': ['día', 'hora', 'minuto', 'segundo', 's'],
-            'en': ['day', 'hour', 'minute', 'second', 's']
-        }
-    }
 
     if integer is True:
         seconds = int(seconds)
 
     try:
         if abbreviated is True:
-            day, hour, minute, second, final_s = alphabet['abbr'][language]
+            day_str, hour_str, minute_str, second_str, final_s, s_last = ALPHABET['abbr'][language]
         else:
-            day, hour, minute, second, final_s = alphabet['default'][language]
+            day_str, hour_str, minute_str, second_str, final_s, s_last = ALPHABET['default'][
+                language]
     except KeyError:
         raise InvalidLanguage(f'{language!r} is not a valid language')
 
     before = ", "
-    s_last = " y "
+    s_last = ' ' + s_last + ' '
     has_before = [False, False, False, False]
     has_not_zero = [0, 0, 0, 0]
 
-    h, m, s = dividir_segundos(seconds, entero=integer)
-    d = int(h / 24)
-    h = h % 24
+    day, hour, minute, second = split_seconds(seconds, integer=integer, days=True)
 
-    if s:
+    if second:
         last = 4
-    elif m:
+    elif minute:
         last = 3
-    elif h:
+    elif hour:
         last = 2
-    elif d:
+    elif day:
         last = 1
     else:
         last = 4
 
-    if d:
+    if day:
         has_before[1] = True
         has_before[2] = True
         has_before[3] = True
 
         has_not_zero[0] = 1
-    if h:
+    if hour:
         has_before[2] = True
         has_before[3] = True
 
         has_not_zero[1] = 1
-    if m:
+    if minute:
         has_before[3] = True
 
         has_not_zero[2] = 1
-    if s:
+    if second:
         has_not_zero[3] = 1
 
     only_one = sum(has_not_zero) == 1
     ret = ""
 
-    if d:
-        ret += "{} {}".format(d, day)
-        if d - 1:
+    if day:
+        ret += "{} {}".format(day, day_str)
+        if day - 1:
             ret += final_s
-    if h:
+    if hour:
         if last == 2 and not only_one:
             ret += s_last
         elif has_before[1]:
             ret += before
-        ret += "{} {}".format(h, hour)
-        if h - 1:
+        ret += "{} {}".format(hour, hour_str)
+        if hour - 1:
             ret += final_s
-    if m:
+    if minute:
         if last == 3 and not only_one:
             ret += s_last
         elif has_before[2]:
             ret += before
-        ret += "{} {}".format(m, minute)
-        if m - 1:
+        ret += "{} {}".format(minute, minute_str)
+        if minute - 1:
             ret += final_s
-    if s:
+    if second:
         if last == 4 and not only_one:
             ret += s_last
         elif has_before[3]:
             ret += before
-        ret += "{} {}".format(s, second)
-        if s - 1:
+        ret += "{} {}".format(second, second_str)
+        if second - 1:
             ret += final_s
 
-    if s == m == h == d == 0:
+    if second == minute == hour == day == 0:
         return '0 ' + second + final_s
 
     return ret
 
 
-def dividir_segundos(totalsegundos, days=False, entero=None):
+def split_seconds(total_seconds, days=False, integer=None):
     """Transforma segundos en horas,minutos y segundos."""
 
-    # totalsegundos = int(totalsegundos)
+    # total_seconds = int(total_seconds)
 
-    totalminutos = totalsegundos // 60
-    segundos = totalsegundos % 60
-    horas = totalminutos // 60
-    minutos = totalminutos % 60
+    total_minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
 
-    segundos = round(segundos, 2)
+    seconds = round(seconds, 2)
 
-    if entero is not False:
-        horas = int(horas)
-        minutos = int(minutos)
-        if not (horas == minutos == 0 and int(segundos) < 1 and entero is None):
-            segundos = int(segundos)
+    if integer is not False:
+        hours = int(hours)
+        minutes = int(minutes)
+        if not (hours == minutes == 0 and int(seconds) < 1 and integer is None):
+            seconds = int(seconds)
 
     if not days:
-        return horas, minutos, segundos
+        return hours, minutes, seconds
     else:
-        dias = int(horas / 24)
-        horas = horas % 24
-        return dias, horas, minutos, segundos
+        days = hours // 24
+        hours = hours % 24
+        return days, hours, minutes, seconds
