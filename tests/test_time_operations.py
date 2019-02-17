@@ -1,6 +1,3 @@
-# def secs_to_str(seconds, abbreviated=False, integer=None, language='en'):
-# def split_seconds(totalsegundos, days=False, entero=None):
-
 import os
 
 import pytest

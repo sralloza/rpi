@@ -86,6 +86,10 @@ class DownloaderError(BaseError):
     """Error while downloading."""
 
 
+class CrontabError(BaseError):
+    """Error in crontab"""
+
+
 class JobNotFoundError(BaseError):
     """Job can't be found."""
 

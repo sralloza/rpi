@@ -16,7 +16,7 @@ from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import InvalidMonthError, InvalidDayError, DownloaderError
 from rpi.launcher import BaseMinimalLauncher
-from rpi.managers.users_manager import UsersManager
+from rpi.managers.users_manager import UsersManager, User
 
 configure_logging(called_from=__file__, use_logs_folder=True)
 
@@ -759,7 +759,7 @@ class MenusManager:
             mensaje_normal = message
 
         if isinstance(destinations, str):
-            usuario = users_manager.get_by_username(destinations).username
+            usuario: User = users_manager.get_by_username(destinations).username
             if isinstance(usuario.launcher, BaseMinimalLauncher):
                 Connections.notify(title, mensaje_minimal, destinations=usuario, file=__file__)
             else:

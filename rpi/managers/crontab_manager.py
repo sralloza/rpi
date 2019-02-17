@@ -10,10 +10,11 @@ from typing import Union, List
 from crontab import CronTab, CronItem
 
 from rpi import operating_system
-from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError
+from rpi.exceptions import JobNotFoundError, ExistingJobError, InvalidArgumentError, CrontabError
 from rpi.managers.services_manager import ServicesManager
 
 
+# noinspection PyUnresolvedReferences
 class CrontabManager:
     """Crontab interface"""
     BASE = '/usr/local/bin/python3 '
@@ -21,7 +22,7 @@ class CrontabManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         if operating_system() == 'W':
-            self.cron = CronTab(tabfile='E:/PYTHON/raspberry_pi/rpi/crontab.txt')
+            self.cron = CronTab(tabfile='D:/.database/txt/crontab.txt')
         else:
             self.cron = CronTab(user=True)
 
@@ -196,8 +197,11 @@ class CrontabManager:
         command_pattern = re.compile(
             r'(?P<PYTHON>[\w/.]+)\s(?P<SERVICE_PATH>[\w/.]+)\s(?P<EXTRA_ARGS>[\w\-\s]+)')
 
-        service = ServicesManager.get(
-            command_pattern.search(job.command).groupdict()['SERVICE_PATH'])
+        try:
+            service = ServicesManager.get(
+                command_pattern.search(job.command).groupdict()['SERVICE_PATH'])
+        except AttributeError:
+            raise CrontabError(f"job couldn't be id as a service job ({job!r})")
 
         options: Union[List[str], str] = os.path.basename(job.command).split(' ')[1:]
 

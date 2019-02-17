@@ -75,6 +75,9 @@ class UsersManager(list):
 
         self.load()
 
+    def __contains__(self, item):
+        return item in self.usernames
+
     def __str__(self):
         return '\n'.join([repr(e) for e in self])
 
@@ -144,6 +147,7 @@ class UsersManager(list):
             is_superuser = user.is_superuser
             is_staff = user.is_staff
 
+            # noinspection PyTypeChecker
             services = ServicesManager.eval(user.services)
             try:
                 launcher = json.loads(user.launcher)
@@ -165,7 +169,11 @@ class UsersManager(list):
         self.logger.debug('Users loaded')
         return self
 
-    def get_by_username(self, username):
+    @staticmethod
+    def get_by_username(username) -> User:
+        self = UsersManager.__new__(UsersManager)
+        self.__init__()
+
         self.logger.debug(f'Getting user by username - {username!r}')
         for user in self:
             if user.username == username:
@@ -173,7 +181,11 @@ class UsersManager(list):
         self.logger.critical(f'Unknown username: {username!r}')
         raise UserNotFoundError(f'Unknown username: {username!r}')
 
-    def get_by_telegram_id(self, chat_id):
+    @staticmethod
+    def get_by_telegram_id(chat_id) -> User:
+        self = UsersManager.__new__(UsersManager)
+        self.__init__()
+
         chat_id = int(chat_id)
         self.logger.debug(f'Getting user by chat_id - {chat_id!r}')
         for user in self:

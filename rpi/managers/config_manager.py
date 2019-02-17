@@ -22,7 +22,10 @@ class ConfigManager:
         self.config[key] = value
 
     def __getitem__(self, item):
-        return self.config[item]
+        try:
+            return self.config[item]
+        except KeyError:
+            raise ConfigError(f'Config not found: {item!r}')
 
     def __delitem__(self, key):
         del self.config[key]
@@ -72,7 +75,7 @@ class ConfigManager:
         other = ConfigManager.__new__(ConfigManager)
         other.__init__()
 
-        if len(other) > len(self):
+        if len(other) > len(self) and force is False:
             self.logger.critical(
                 'You can not save less configurations than the ones that are saved')
             raise ConfigError('You can not save less configurations than the ones that are saved')

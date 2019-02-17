@@ -1,37 +1,3 @@
-# class BaseLauncher:
-#     def __init__(self, downloader=None):
-#     def __repr__(self):
-#     def __str__(self):
-#     def fire(self, title, message):
-#     def to_json(self):
-
-# class InvalidLauncher(BaseLauncher):
-#     def fire(self, title, message):
-#     def to_json(self):
-
-# class BaseExtendedLauncher(BaseLauncher):
-#     def fire(self, title, message):
-#     def to_json(self):
-
-# class BaseMinimalLauncher(BaseLauncher):
-#     def fire(self, title, message):
-#     def to_json(self):
-
-# class IftttLauncher(BaseExtendedLauncher):
-#     def __init__(self, url, downloader=None):
-#     def fire(self, title, message):
-#     def to_json(self):
-
-# class TelegramLauncher(BaseExtendedLauncher):
-#     def __init__(self, chat_id: Union[str, int], downloader=None):
-#     def fire(self, title, message):
-#     def to_json(self):
-#     def update_status(self):
-
-# class NotifyRunLauncher(BaseMinimalLauncher):
-#     def __init__(self, config, downloader=None):
-#     def fire(self, title, message):
-#     def to_json(self):
 import os
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler

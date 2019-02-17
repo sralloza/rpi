@@ -7,3 +7,5 @@ requests
 gspread
 google_api_python_client
 oauth2client
+python-telegram-bot
+dataclasses

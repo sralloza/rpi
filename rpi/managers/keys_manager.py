@@ -46,6 +46,16 @@ class KeysManager:
 
         self.logger.debug('Saved keys successfully')
 
+    def delete(self, service):
+        if service not in self.keys():
+            self.logger.critical('Key %r not found', service)
+            raise MissingKeyError(f'Key {service!r} not found')
+
+        del self.dict[service]
+        self.logger.debug('Deleted password of service %r', service)
+
+        self.save()
+
     @staticmethod
     def set(service: str, password: str):
         """Sets a password  given its password and service.

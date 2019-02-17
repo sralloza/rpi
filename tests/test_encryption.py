@@ -1,8 +1,3 @@
-# def encrypt(message: Union[str, bytes], key: str = None) -> bytes:
-# def decrypt(message: Union[str, bytes], key: str = None) -> bytes:
-# def get_fernet(key: str = None) -> Fernet:
-# def encrypt_file(filename: str, key: bool = None):
-# def decrypt_file(filename: str, key: bool = None):
 import os
 from pathlib import Path
 

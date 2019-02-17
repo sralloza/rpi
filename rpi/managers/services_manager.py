@@ -202,7 +202,7 @@ class ServicesManager(Enum):
     VCS = RaspberryService(
         name='VCS',
         command=Command(
-            # todo: crear command
+            # todo: create command
             template='{PYTHON} {PATH} {OPTIONS}',
             path='/home/pi/scripts/vcs.py',
         ),
@@ -224,9 +224,8 @@ class ServicesManager(Enum):
         options=(),
         extra_paths=(
             '/home/pi/scripts/backup.py', '/home/pi/scripts/ngrok.py', '/home/pi/scripts/ngrok2.py',
-            '/home/pi/scripts/reboot.py', '/home/pi/scripts/serveo.py',
-            '/home/pi/scripts/gestor_mail.py',
-            '/home/pi/pull.sh',
+            '/home/pi/scripts/reboot.py', '/home/pi/scripts/mails_manager.py', '/home/pi/pull.sh',
+            '/home/pi/scripts/sender.py'
         ),
         isabstract=True
     )
