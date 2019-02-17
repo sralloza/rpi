@@ -6,7 +6,7 @@ import platform
 
 # __VERSION__ = '2018.11.15'
 
-__VERSION__ = '2019.2.17'
+__VERSION__ = '2019.2.18'
 ADMIN_EMAIL = 'sralloza@gmail.com'
 
 

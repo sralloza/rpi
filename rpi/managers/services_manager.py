@@ -51,7 +51,7 @@ class Command:
 class RaspberryService:
     """Represents a service run by raspberry pi"""
 
-    DEFAULT = {'PYTHON': '/usr/local/bin/python3'}
+    DEFAULT = {'PYTHON': '/home/pi/scripts/venv/bin/python'}
     name: str
     command: Command
     options: Union[Tuple[Option], tuple] = None
