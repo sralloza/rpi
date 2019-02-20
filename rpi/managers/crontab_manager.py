@@ -17,8 +17,6 @@ from rpi.managers.services_manager import ServicesManager
 # noinspection PyUnresolvedReferences
 class CrontabManager:
     """Crontab interface"""
-    BASE = '/usr/local/bin/python3 '
-
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         if operating_system() == 'W':
@@ -78,7 +76,7 @@ class CrontabManager:
         self = CrontabManager.__new__(CrontabManager)
         self.__init__()
 
-        self.logger.debug('Trying to delete by anything - %r', anything)
+        self.logger.debug('Deleting by anything - %r', anything)
 
         if isinstance(anything, CronItem):
             hashcode = CrontabManager.job_to_hash(anything)
@@ -141,7 +139,6 @@ class CrontabManager:
         result = tuple(self.cron.find_comment(username))
 
         logger = logging.getLogger(__name__)
-        logger.debug('Returning list of cronitems by user %r', username)
 
         return result
 
@@ -159,7 +156,6 @@ class CrontabManager:
         logger = logging.getLogger(__name__)
         result = hash(str(vars(job)))
 
-        logger.debug('Returning hash %r from job %r', result, job)
         return result
 
     @staticmethod
@@ -178,7 +174,6 @@ class CrontabManager:
         except AttributeError:
             username = user
         logger = logging.getLogger(__name__)
-        logger.debug('Returning username %r from user %s', username, user)
         return username
 
     @staticmethod

@@ -63,6 +63,8 @@ class Connections:
         self = object.__new__(Connections)
         self.__init__()
         self.logger.debug('Notify - %r, %r, %r, %r, %r', title, message, destinations, file, force)
+        if force is True:
+            self.DISABLE = False
 
         if destinations == 'multicast' and file is None:
             raise NeccessaryArgumentError("Multicast can't be used without the 'file' argument.")
@@ -160,6 +162,7 @@ class Connections:
             self.append_code(True)
             return
         except DownloaderError:
+            self.logger.error('Error sending to %s', user.username)
             self.append_error(user)
             self.append_code(True)
 

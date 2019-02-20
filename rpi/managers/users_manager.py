@@ -14,8 +14,9 @@ from rpi.launcher import IftttLauncher, NotifyRunLauncher, BaseLauncher, Telegra
 from .crontab_manager import CrontabManager
 from .services_manager import ServicesManager, RaspberryService
 
+# TODO - STOP USING DATACLASSES
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(init=False)
 class User:
     """Represents a user."""
     username: str
@@ -49,6 +50,16 @@ class User:
                     self.services = services
 
         self.update_cronitems()
+
+    def __hash__(self):
+        o = (
+            self.username, self.is_active, self.is_banned,
+            self.email, self.is_superuser, self.is_staff
+        )
+        return hash(o)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def update_cronitems(self):
         """Updates all tasks created by user."""
@@ -84,13 +95,11 @@ class UsersManager(list):
     @property
     def usernames(self):
         result = tuple([x.username for x in self])
-        self.logger.debug(f'Returning list of usernames - {result!r}')
         return result
 
     @property
     def emails(self):
         result = tuple([x.email for x in self])
-        self.logger.debug(f'Returning list of emails - {result!r}')
         return result
 
     def save_launcher(self, username):
@@ -126,8 +135,8 @@ class UsersManager(list):
         self.path = RpiDns.get('sqlite.django')
 
         if os.path.isfile(self.path) is False:
-            self.logger.critical('User database not found')
-            raise FileNotFoundError('User database not found')
+            self.logger.critical('User database not found (%r)', self.path)
+            raise FileNotFoundError(f'User database not found ({self.path})')
 
         self.con = sqlite3.connect(self.path)
         self.cur = self.con.cursor()
@@ -174,7 +183,6 @@ class UsersManager(list):
         self = UsersManager.__new__(UsersManager)
         self.__init__()
 
-        self.logger.debug(f'Getting user by username - {username!r}')
         for user in self:
             if user.username == username:
                 return user
@@ -187,7 +195,6 @@ class UsersManager(list):
         self.__init__()
 
         chat_id = int(chat_id)
-        self.logger.debug(f'Getting user by chat_id - {chat_id!r}')
         for user in self:
             if isinstance(user.launcher, TelegramLauncher):
                 if user.launcher.chat_id == chat_id:

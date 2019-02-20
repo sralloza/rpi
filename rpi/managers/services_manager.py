@@ -278,7 +278,6 @@ class ServicesManager(Enum):
         """Returns the service given its identifier."""
 
         logger = logging.getLogger(__name__)
-        logger.debug('Trying to identify service from %r', basepath)
 
         if isinstance(basepath, RaspberryService):
             return basepath
@@ -300,7 +299,6 @@ class ServicesManager(Enum):
         """Returns a list of services from a string representation of a list of services."""
 
         logger = logging.getLogger(__name__)
-        logger.debug('Evaluating %r', string_to_evaluate)
         try:
             data = eval(string_to_evaluate, globals(), ServicesManager.__dict__)
         except SyntaxError:
@@ -317,7 +315,5 @@ class ServicesManager(Enum):
             except AttributeError:
                 warn(f"Something may have gone wrong (data={data!r})", UnexpectedBehaviourWarning)
                 logger.warning("Something may have gone wrong (data=%r)", data)
-
-        logger.debug('Evaluated: %r', data)
 
         return tuple(data)

@@ -18,8 +18,13 @@ class KeysManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.path = RpiDns.get('json.claves')
-        with open(self.path) as file_handler:
-            self.dict = json.load(file_handler)
+
+        try:
+            with open(self.path) as file_handler:
+                self.dict = json.load(file_handler)
+        except FileNotFoundError:
+            self.logger.critical('Keys file not found (%r)', self.path)
+            raise FileNotFoundError(f'Keys file not found ({self.path!r})')
 
     @staticmethod
     def keys() -> Tuple[str]:
