@@ -1,3 +1,4 @@
+import os
 import sys
 
 import setuptools
@@ -28,3 +29,5 @@ setuptools.setup(
     install_requires=open('requirements.txt').read().splitlines(),
     scripts=['rpi/bin/pi.py', 'rpi/bin/encriptar.py', 'rpi/bin/desencriptar.py'],
 )
+
+os.system('clean.cmd')

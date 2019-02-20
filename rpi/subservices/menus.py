@@ -10,13 +10,10 @@ from typing import List, Union, Iterable
 
 from bs4 import BeautifulSoup as Soup
 
-from rpi.connections import Connections
 from rpi.custom_logging import configure_logging
 from rpi.dns import RpiDns
 from rpi.downloader import Downloader
 from rpi.exceptions import InvalidMonthError, InvalidDayError, DownloaderError
-from rpi.launcher import BaseMinimalLauncher
-from rpi.managers.users_manager import UsersManager, User
 
 configure_logging(called_from=__file__, use_logs_folder=True)
 
@@ -342,7 +339,7 @@ class MenusManager:
             )
             self.list.append(menu)
 
-    def save_to_database(self)->int:
+    def save_to_database(self) -> int:
         """Saves the menus to the database.
 
         Returns:
@@ -399,9 +396,10 @@ class MenusManager:
         """Loads all the menus required."""
         self.load_from_database()
 
-        current_day, current_month, current_year = get_date()
+        three_days_ahead = datetime.datetime.today() + datetime.timedelta(days=3)
+        day, month, year = three_days_ahead.day, three_days_ahead.month, three_days_ahead.year
 
-        current_id = Menu.generate_id(current_day, current_month, current_year)
+        current_id = Menu.generate_id(day, month, year)
 
         if current_id in self:
             return True
@@ -742,42 +740,3 @@ class MenusManager:
         if counter == 0:
             return False
         return output
-
-    @staticmethod
-    def notify(message, destinations, show='all'):
-        import warnings
-        warnings.warn('This method should not be used, will be deleted in the next version',
-                      DeprecationWarning)
-        title = 'Menús Resi'
-        users_manager = UsersManager()
-
-        if isinstance(message, Menu):
-            mensaje_normal = message.__str__(arg=show)
-            mensaje_minimal = message.__str__(arg=show, minimal=True)
-        else:
-            mensaje_minimal = message
-            mensaje_normal = message
-
-        if isinstance(destinations, str):
-            usuario: User = users_manager.get_by_username(destinations).username
-            if isinstance(usuario.launcher, BaseMinimalLauncher):
-                Connections.notify(title, mensaje_minimal, destinations=usuario, file=__file__)
-            else:
-                Connections.notify(title, mensaje_normal, destinations=usuario, file=__file__)
-        else:
-            try:
-                usuarios_normales = []
-                usuarios_minimal = []
-                for nombre in destinations:
-                    usuario = users_manager.get_by_username(nombre)
-                    if isinstance(usuario.launcher, BaseMinimalLauncher):
-                        usuarios_minimal.append(usuario.username)
-                    else:
-                        usuarios_normales.append(usuario.username)
-                Connections.notify(title, mensaje_normal, destinations=usuarios_normales,
-                                   file=__file__)
-                Connections.notify(title, mensaje_minimal, destinations=usuarios_minimal,
-                                   file=__file__)
-            except TypeError:
-                raise TypeError(
-                    '"destinations" debe ser str o iterable, no ' + type(destinations).__name__)
