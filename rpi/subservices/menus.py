@@ -105,10 +105,14 @@ class MenusDatabaseManager:
         """Sets the last update the actual datetime in the database."""
 
         now = datetime.datetime.today()
-        if self.get_update() == datetime.datetime.min:
-            self.cur.execute("insert into updates values(?)", (now.strftime('%y-%m-%d %H:%M:%S'),))
-        else:
-            self.cur.execute("update updates set datetime=?", (now.strftime('%y-%m-%d %H:%M:%S'),))
+        try:
+            if self.get_update() == datetime.datetime.min:
+                self.cur.execute("insert into updates values(?)", (now.strftime('%y-%m-%d %H:%M:%S'),))
+            else:
+                self.cur.execute("update updates set datetime=?", (now.strftime('%y-%m-%d %H:%M:%S'),))
+        except sqlite3.OperationalError:
+            self.logger.critical('Operational Error')
+            self.logger.exception('')
         self.con.commit()
         return True
 
